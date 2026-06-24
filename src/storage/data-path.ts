@@ -7,7 +7,7 @@ type DataPathRuntime = {
   platform: NodeJS.Platform;
 };
 
-const dataFileName = "todos.json";
+const dataFileName = "todos.db";
 
 export function resolveTodoDataPath(override?: string, runtime = currentRuntime()): string {
   if (override !== undefined) return resolvePath(override, runtime);

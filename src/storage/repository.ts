@@ -1,4 +1,4 @@
-import type { Category, Todo } from "../domain/model";
+import type { Category, CategoryId, DateString, Todo, TodoId, TodoStatus } from "../domain/model";
 
 export const SCHEMA_VERSION = 1;
 
@@ -8,13 +8,30 @@ export type StoreSnapshot = {
   categories: Category[];
 };
 
-export type FileRepositoryOptions = {
+export type TodoFilter = {
+  date?: DateString;
+  dateFrom?: DateString;
+  dateTo?: DateString;
+  categoryId?: CategoryId;
+  status?: TodoStatus;
+  scheduled?: boolean;
+  includeDeleted?: boolean;
+};
+
+export type RepositoryOptions = {
   path?: string;
 };
 
 export interface TodoRepository {
-  load(): Promise<StoreSnapshot>;
-  save(snapshot: StoreSnapshot): Promise<void>;
+  listTodos(filter?: TodoFilter): Promise<Todo[]>;
+  getTodo(id: TodoId): Promise<Todo | undefined>;
+  putTodo(todo: Todo): Promise<void>;
+  listCategories(): Promise<Category[]>;
+  getCategory(id: CategoryId): Promise<Category | undefined>;
+  putCategory(category: Category): Promise<void>;
+  exportSnapshot(): Promise<StoreSnapshot>;
+  importSnapshot(snapshot: StoreSnapshot): Promise<void>;
+  close(): void;
 }
 
 export function emptySnapshot(): StoreSnapshot {
@@ -24,7 +41,7 @@ export function emptySnapshot(): StoreSnapshot {
 export class StoreCorruptError extends Error {
   constructor(path: string, cause?: unknown) {
     super(
-      `Todo data file is corrupt or unreadable: ${path}. Inspect or remove the file, then retry.`,
+      `Todo database is corrupt or unreadable: ${path}. Inspect or remove the file, then retry.`,
       cause !== undefined ? { cause } : undefined,
     );
     this.name = "StoreCorruptError";
@@ -34,7 +51,7 @@ export class StoreCorruptError extends Error {
 export class StoreVersionError extends Error {
   constructor(path: string, foundVersion: number, supportedVersion: number = SCHEMA_VERSION) {
     super(
-      `Todo data file at ${path} uses unsupported schema version ${foundVersion}; ` +
+      `Todo database at ${path} uses unsupported schema version ${foundVersion}; ` +
         `this build supports version ${supportedVersion}. Upgrade todorepl or restore a compatible file.`,
     );
     this.name = "StoreVersionError";

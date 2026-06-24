@@ -34,17 +34,22 @@ date and may also have a scheduled minute-of-day, duration, category, and emoji.
 
 ## Persistence
 
-- All todos and categories live in a single local JSON document (`todos.json`).
-- The document holds `version`, `todos`, and `categories`; the schema is versioned (currently 1).
-- Opening a file with an unsupported or incompatible version fails with an actionable error.
-- Writes are atomic: the store writes a temp file in the same directory, then renames it over the
-  target, so an interrupted write never leaves partial JSON behind.
-- A missing data file bootstraps cleanly to an empty store; the file is not created until the first
-  save.
+- All todos and categories live in a single local SQLite database file (`todos.db`), opened through
+  Bun's built-in `bun:sqlite` so no extra dependency is required.
+- Data is split across a `todos` table and a `categories` table, with indexes on `(date, status)`
+  and `category_id` so date, status, and category filters run as indexed SQL rather than scanning
+  every row in memory.
+- The schema is versioned through SQLite's `PRAGMA user_version`; opening a database with an
+  unsupported or newer version fails with an actionable error.
+- Writes that touch many rows (for example, import) run inside an ACID transaction, so an
+  interrupted write never leaves a half-applied state behind.
+- A missing database bootstraps cleanly: the file and schema are created on first open.
 - Corrupt or unreadable files fail with an actionable error that points the user at the file to
   inspect or remove.
-- The repository contract is a load/save of the whole snapshot (`load()` / `save(snapshot)`), shared
-  by REPL and command mode.
+- The repository exposes a query-shaped contract (`listTodos(filter)`, `getTodo` / `putTodo`,
+  `listCategories` / `getCategory` / `putCategory`, `exportSnapshot` / `importSnapshot`) shared by
+  REPL and command mode; it is defined in `src/storage/repository.ts` and implemented in
+  `src/storage/sqlite-store.ts`.
 
 ## Agent Workflow Shape
 

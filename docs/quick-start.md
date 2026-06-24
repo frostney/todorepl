@@ -36,7 +36,7 @@ bun run todorepl -- list
 Resolve a specific local data file path:
 
 ```sh
-bun run todorepl -- add "Draft launch notes" --data ./local.todos.json
+bun run todorepl -- add "Draft launch notes" --data ./local.todos.db
 ```
 
 The package binary exposes the same command surface after local linking or package install:
@@ -49,15 +49,15 @@ todorepl --help
 
 By default, todorepl resolves its local data file to:
 
-- macOS: `~/Library/Application Support/todorepl/todos.json`
-- Linux and other XDG platforms: `$XDG_DATA_HOME/todorepl/todos.json`, or
-  `~/.local/share/todorepl/todos.json` when `XDG_DATA_HOME` is unset
-- Windows: `%LOCALAPPDATA%\todorepl\todos.json`, or
-  `~/AppData/Local/todorepl/todos.json` when `LOCALAPPDATA` is unset
+- macOS: `~/Library/Application Support/todorepl/todos.db`
+- Linux and other XDG platforms: `$XDG_DATA_HOME/todorepl/todos.db`, or
+  `~/.local/share/todorepl/todos.db` when `XDG_DATA_HOME` is unset
+- Windows: `%LOCALAPPDATA%\todorepl\todos.db`, or
+  `~/AppData/Local/todorepl/todos.db` when `LOCALAPPDATA` is unset
 
 Use `--data path` to override the local file path for commands that accept data. Todos and categories
-are persisted to this file as a versioned JSON document with atomic writes, and `--data <path>`
-selects an alternate data file.
+are stored in a local SQLite database with a versioned schema and transactional writes, and
+`--data <path>` selects an alternate database file.
 
 ## Command Reference
 

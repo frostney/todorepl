@@ -46,14 +46,15 @@ todorepl add "Draft launch notes"
 
 todorepl is local-first. The CLI resolves its default data file to the platform data directory:
 
-- macOS: `~/Library/Application Support/todorepl/todos.json`
-- Linux and other XDG platforms: `$XDG_DATA_HOME/todorepl/todos.json`, or
-  `~/.local/share/todorepl/todos.json` when `XDG_DATA_HOME` is unset
-- Windows: `%LOCALAPPDATA%\todorepl\todos.json`, or
-  `~/AppData/Local/todorepl/todos.json` when `LOCALAPPDATA` is unset
+- macOS: `~/Library/Application Support/todorepl/todos.db`
+- Linux and other XDG platforms: `$XDG_DATA_HOME/todorepl/todos.db`, or
+  `~/.local/share/todorepl/todos.db` when `XDG_DATA_HOME` is unset
+- Windows: `%LOCALAPPDATA%\todorepl\todos.db`, or
+  `~/AppData/Local/todorepl/todos.db` when `LOCALAPPDATA` is unset
 
-Use `--data path` on supported commands to point at a different local file. The current scaffold
-resolves and reports the data path, but persistent todo storage is not implemented yet.
+Todos and categories are stored in a local SQLite database. Use `--data path` on supported commands
+to point at a different database file. The current scaffold resolves and reports the data path, but
+persistent todo storage is not implemented yet.
 
 ## Command Reference
 
