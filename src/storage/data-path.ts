@@ -24,8 +24,8 @@ function currentRuntime(): DataPathRuntime {
 
 function defaultDataDirectory({ env, homeDir, platform }: DataPathRuntime): string {
   if (platform === "darwin") return join(homeDir, "Library", "Application Support");
-  if (platform === "win32") return env.LOCALAPPDATA ?? win32.join(homeDir, "AppData", "Local");
-  return env.XDG_DATA_HOME ?? join(homeDir, ".local", "share");
+  if (platform === "win32") return env.LOCALAPPDATA || win32.join(homeDir, "AppData", "Local");
+  return env.XDG_DATA_HOME || join(homeDir, ".local", "share");
 }
 
 function joinPath(runtime: DataPathRuntime, ...parts: string[]): string {

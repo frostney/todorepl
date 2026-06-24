@@ -32,6 +32,26 @@ describe("resolveTodoDataPath", () => {
     ).toBe("C:\\Users\\alex\\AppData\\Local\\todorepl\\todos.json");
   });
 
+  test("treats an empty XDG_DATA_HOME as unset and falls back to ~/.local/share", () => {
+    expect(
+      resolveTodoDataPath(undefined, {
+        env: { XDG_DATA_HOME: "" },
+        homeDir: "/home/alex",
+        platform: "linux",
+      }),
+    ).toBe("/home/alex/.local/share/todorepl/todos.json");
+  });
+
+  test("treats an empty LOCALAPPDATA as unset and falls back to AppData\\Local", () => {
+    expect(
+      resolveTodoDataPath(undefined, {
+        env: { LOCALAPPDATA: "" },
+        homeDir: "C:\\Users\\alex",
+        platform: "win32",
+      }),
+    ).toBe("C:\\Users\\alex\\AppData\\Local\\todorepl\\todos.json");
+  });
+
   test("resolves explicit data path overrides", () => {
     expect(resolveTodoDataPath("relative/todos.json")).toBe(`${process.cwd()}/relative/todos.json`);
   });
