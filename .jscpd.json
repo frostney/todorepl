@@ -1,0 +1,7 @@
+{
+  "threshold": 3,
+  "minLines": 8,
+  "minTokens": 80,
+  "reporters": ["console"],
+  "ignore": ["node_modules/**", ".git/**", ".fallow/**", ".agents/**", "bun.lock"]
+}

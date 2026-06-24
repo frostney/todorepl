@@ -1,0 +1,7 @@
+node_modules/
+dist/
+_reports/
+.fallow/
+coverage/
+.DS_Store
+*.log

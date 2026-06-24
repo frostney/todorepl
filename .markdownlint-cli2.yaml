@@ -1,0 +1,11 @@
+globs:
+  - "*.md"
+  - "docs/**/*.md"
+ignores:
+  - ".agents/**"
+  - "node_modules/**"
+  - ".fallow/**"
+config:
+  MD013: false
+  MD024:
+    siblings_only: true

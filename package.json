@@ -1,0 +1,51 @@
+{
+  "name": "todorepl",
+  "version": "0.1.0",
+  "description": "A command-line todo app with REPL and subcommand modes for agentic workflows.",
+  "type": "module",
+  "bin": {
+    "todorepl": "./src/cli/main.ts"
+  },
+  "scripts": {
+    "todorepl": "bun run src/cli/main.ts",
+    "test": "bun test",
+    "format": "biome format --write .",
+    "lint": "biome check .",
+    "check": "bun test && biome ci . && bunx tsc --noEmit && bun run check:docs && bun run check:links && bun run check:duplicates && bun run check:drift && bun run quality",
+    "check:docs": "markdownlint-cli2",
+    "check:links": "bun run scripts/check-links.ts",
+    "check:duplicates": "jscpd .",
+    "check:drift": "bun run scripts/check-drift.ts",
+    "quality": "fallow audit --gate new-only && fallow health --score --report-only"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frostney/todorepl.git"
+  },
+  "keywords": [
+    "todo",
+    "cli",
+    "repl",
+    "agent",
+    "bun"
+  ],
+  "author": "Johannes Stein",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/frostney/todorepl/issues"
+  },
+  "homepage": "https://github.com/frostney/todorepl#readme",
+  "packageManager": "bun@1.3.14",
+  "dependencies": {
+    "@stricli/core": "^1.2.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@types/bun": "^1.3.14",
+    "fallow": "^2.102.0",
+    "jscpd": "^5.0.11",
+    "lefthook": "^2.1.9",
+    "markdownlint-cli2": "^0.22.1",
+    "typescript": "^6.0.3"
+  }
+}
