@@ -61,11 +61,33 @@ are stored in a local SQLite database with a versioned schema and transactional 
 
 ## Command Reference
 
+Every data-returning command accepts `--data path` to select an alternate database file and `--json`
+to emit the raw record(s): a single Todo object, or an array of Todo objects for `list`. Any `<id>`
+argument may be given as a unique id prefix.
+
 ```text
-todorepl add [--data path] [--json] <name>
-todorepl list [--data path] [--json]
+todorepl add <name> [--date YYYY-MM-DD] [--time HH:MM] [--duration min]
+                    [--category name] [--emoji char] [--data path] [--json]
+todorepl list [--date YYYY-MM-DD] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+              [--category name] [--status open|done] [--scheduled] [--unscheduled]
+              [--include-deleted] [--data path] [--json]
+todorepl show <id> [--data path] [--json]
+todorepl done <id> [--data path] [--json]
+todorepl edit <id> [--name text] [--time HH:MM] [--duration min]
+                   [--category name] [--emoji char] [--data path] [--json]
+todorepl move <id> <date> [--data path] [--json]
+todorepl delete <id> [--data path] [--json]
 todorepl --help
 todorepl --version
+```
+
+`add` creates a todo on a date (defaulting to today). `list` filters by date, range, category, status,
+and scheduling, and hides soft-deleted todos unless `--include-deleted` is set. `show` and `done`
+inspect and complete a single todo, `edit` updates its fields, `move` reschedules it to another date,
+and `delete` performs a soft delete. Print machine-readable output by adding `--json`:
+
+```sh
+bun run todorepl -- list --json
 ```
 
 ## Validate

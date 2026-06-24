@@ -23,11 +23,17 @@ date and may also have a scheduled minute-of-day, duration, category, and emoji.
 - Bun runs the CLI directly from TypeScript.
 - Stricli owns command routing and generated help.
 - Domain validation lives outside the CLI so the REPL and command mode share behavior.
+- Command mode and the REPL call the same application services in `src/app/`, so both entry modes
+  share one behavior path over the domain and storage layers.
 - Storage will be local-first and file-backed before any sync concept exists.
 
 ## Source Boundaries
 
 - `src/cli/` handles Stricli routing, output, and the REPL shell.
+- `src/app/` holds UI-agnostic application services (for example `todo-service.ts`) shared by command
+  mode and the REPL; they orchestrate domain validation and storage so both entry modes share one
+  code path. It sits between `src/domain/` and `src/storage/`, and `src/cli/` adapts it to Stricli
+  and the REPL.
 - `src/domain/` owns domain types and validation.
 - `src/storage/` owns persistence contracts and implementations.
 - `scripts/` owns project checks and one-off automation.

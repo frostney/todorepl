@@ -1,24 +1,28 @@
-export function printJson(value: unknown) {
-  console.log(JSON.stringify(value, null, 2));
+export function formatJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-export function printTable(rows: readonly Record<string, unknown>[]) {
-  if (rows.length === 0) {
-    console.log("No rows.");
-    return;
+export function formatTable(rows: readonly Record<string, unknown>[]): string {
+  const first = rows[0];
+  if (first === undefined) {
+    return "No rows.\n";
   }
 
-  const columns = Object.keys(rows[0]!);
+  const columns = Object.keys(first);
   const widths = columns.map((column) =>
     Math.max(column.length, ...rows.map((row) => String(row[column] ?? "").length)),
   );
 
-  console.log(columns.map((column, index) => column.padEnd(widths[index]!)).join("  "));
-  console.log(widths.map((width) => "-".repeat(width)).join("  "));
+  const renderRow = (cells: (column: string, index: number) => string): string =>
+    columns.map(cells).join("  ");
 
-  for (const row of rows) {
-    console.log(
-      columns.map((column, index) => String(row[column] ?? "").padEnd(widths[index]!)).join("  "),
-    );
-  }
+  const lines = [
+    renderRow((column, index) => column.padEnd(widths[index] ?? 0)),
+    renderRow((_, index) => "-".repeat(widths[index] ?? 0)),
+    ...rows.map((row) =>
+      renderRow((column, index) => String(row[column] ?? "").padEnd(widths[index] ?? 0)),
+    ),
+  ];
+
+  return `${lines.join("\n")}\n`;
 }
