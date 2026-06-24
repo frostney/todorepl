@@ -2,6 +2,7 @@ import type { Category, Todo, TodoStatus } from "../domain/model";
 import { parseDateString, parseMinuteOfDay, parseTodoDuration } from "../domain/validation";
 import { SCHEMA_VERSION, type StoreSnapshot, type TodoRepository } from "../storage/repository";
 import { ValidationError } from "./errors";
+import { asValidationError } from "./service-support";
 
 export async function exportData(repo: TodoRepository): Promise<StoreSnapshot> {
   return {
@@ -35,9 +36,11 @@ export async function importData(
   }
 
   const categories = rawCategories.map((raw, index) =>
-    parseRecord(`Category[${index}]`, () => parseCategory(raw)),
+    asValidationError(() => parseCategory(raw), `Category[${index}]`),
   );
-  const todos = rawTodos.map((raw, index) => parseRecord(`Todo[${index}]`, () => parseTodo(raw)));
+  const todos = rawTodos.map((raw, index) =>
+    asValidationError(() => parseTodo(raw), `Todo[${index}]`),
+  );
 
   const categoryIds = new Set(categories.map((category) => category.id));
   for (const todo of todos) {
@@ -106,15 +109,6 @@ function parseStatus(value: unknown): TodoStatus {
     throw new Error(`status must be "open" or "done"`);
   }
   return value;
-}
-
-function parseRecord<T>(label: string, parse: () => T): T {
-  try {
-    return parse();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new ValidationError(`${label}: ${message}`);
-  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

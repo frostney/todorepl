@@ -2,7 +2,7 @@ import type { Todo } from "../domain/model";
 import { parseDateString, parseMinuteOfDay, parseTodoDuration } from "../domain/validation";
 import type { TodoFilter, TodoRepository } from "../storage/repository";
 import { type Clock, systemClock } from "./clock";
-import { AmbiguousMatchError, NotFoundError, ValidationError } from "./errors";
+import { asValidationError, requireName, resolveByIdentifier } from "./service-support";
 
 export type AddTodoInput = {
   name: string;
@@ -37,28 +37,12 @@ export interface TodoService {
 
 type OptionalTodoFields = Pick<Todo, "categoryId" | "emoji" | "scheduledTime" | "duration">;
 
-function validate<T>(parse: () => T): T {
-  try {
-    return parse();
-  } catch (error) {
-    throw new ValidationError(error instanceof Error ? error.message : String(error));
-  }
-}
-
-function requireName(name: string): string {
-  const trimmed = name.trim();
-  if (trimmed.length === 0) {
-    throw new ValidationError("Todo name is required");
-  }
-  return trimmed;
-}
-
 function applyOptionalFields(target: Partial<OptionalTodoFields>, input: EditTodoInput): void {
   if (input.scheduledTime !== undefined) {
-    target.scheduledTime = validate(() => parseMinuteOfDay(input.scheduledTime as string));
+    target.scheduledTime = asValidationError(() => parseMinuteOfDay(input.scheduledTime as string));
   }
   if (input.duration !== undefined) {
-    target.duration = validate(() => parseTodoDuration(input.duration as string));
+    target.duration = asValidationError(() => parseTodoDuration(input.duration as string));
   }
   if (input.categoryId !== undefined) {
     target.categoryId = input.categoryId;
@@ -75,21 +59,16 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
     return maxOrder + 1;
   }
 
-  async function resolve(idOrPrefix: string): Promise<Todo> {
-    const exact = await repo.getTodo(idOrPrefix);
-    if (exact) {
-      return exact;
-    }
-    const matches = (await repo.listTodos({ includeDeleted: true })).filter((todo) =>
-      todo.id.startsWith(idOrPrefix),
+  function resolve(idOrPrefix: string): Promise<Todo> {
+    return resolveByIdentifier(
+      {
+        getExact: (id) => repo.getTodo(id),
+        listAll: () => repo.listTodos({ includeDeleted: true }),
+        matches: (todo, query) => todo.id.startsWith(query),
+        describe: "todo",
+      },
+      idOrPrefix,
     );
-    if (matches.length === 0) {
-      throw new NotFoundError(`No todo matches "${idOrPrefix}"`);
-    }
-    if (matches.length > 1) {
-      throw new AmbiguousMatchError(`"${idOrPrefix}" matches ${matches.length} todos`);
-    }
-    return matches[0] as Todo;
   }
 
   async function persist(todo: Todo): Promise<Todo> {
@@ -99,10 +78,10 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
 
   return {
     async add(input) {
-      const name = requireName(input.name);
+      const name = requireName(input.name, "Todo");
       const date =
         input.date !== undefined
-          ? validate(() => parseDateString(input.date as string))
+          ? asValidationError(() => parseDateString(input.date as string))
           : clock().slice(0, 10);
       const timestamp = clock();
       const todo: Todo = {
@@ -120,7 +99,7 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
 
     async list(filter) {
       for (const value of [filter?.date, filter?.dateFrom, filter?.dateTo]) {
-        if (value !== undefined) validate(() => parseDateString(value));
+        if (value !== undefined) asValidationError(() => parseDateString(value));
       }
       return repo.listTodos(filter);
     },
@@ -139,7 +118,7 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
       const existing = await resolve(idOrPrefix);
       const updated: Todo = { ...existing, updatedAt: clock() };
       if (changes.name !== undefined) {
-        updated.name = requireName(changes.name);
+        updated.name = requireName(changes.name, "Todo");
       }
       applyOptionalFields(updated, changes);
       return persist(updated);
@@ -147,7 +126,7 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
 
     async move(idOrPrefix, move) {
       const existing = await resolve(idOrPrefix);
-      const date = validate(() => parseDateString(move.date));
+      const date = asValidationError(() => parseDateString(move.date));
       return persist({ ...existing, date, order: await nextOrder(date), updatedAt: clock() });
     },
 

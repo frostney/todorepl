@@ -1,7 +1,8 @@
 import type { Category, CategoryId, Todo } from "../domain/model";
 import type { TodoRepository } from "../storage/repository";
 import { type Clock, systemClock } from "./clock";
-import { AmbiguousMatchError, NotFoundError, ValidationError } from "./errors";
+import { ValidationError } from "./errors";
+import { requireName, resolveByIdentifier } from "./service-support";
 
 export type CreateCategoryInput = { name: string; color?: string; emoji?: string };
 
@@ -18,14 +19,6 @@ export interface CategoryService {
   resolveId(idOrName: string): Promise<CategoryId>;
 }
 
-function requireName(name: string): string {
-  const trimmed = name.trim();
-  if (trimmed.length === 0) {
-    throw new ValidationError("Category name is required");
-  }
-  return trimmed;
-}
-
 export function createCategoryService(
   repo: TodoRepository,
   clock: Clock = systemClock,
@@ -35,19 +28,16 @@ export function createCategoryService(
     return categories.find((category) => category.name === name && category.id !== excludeId);
   }
 
-  async function resolve(idOrName: string): Promise<Category> {
-    const exact = await repo.getCategory(idOrName);
-    if (exact) {
-      return exact;
-    }
-    const matches = (await repo.listCategories()).filter((category) => category.name === idOrName);
-    if (matches.length === 0) {
-      throw new NotFoundError(`No category matches "${idOrName}"`);
-    }
-    if (matches.length > 1) {
-      throw new AmbiguousMatchError(`"${idOrName}" matches ${matches.length} categories`);
-    }
-    return matches[0] as Category;
+  function resolve(idOrName: string): Promise<Category> {
+    return resolveByIdentifier(
+      {
+        getExact: (id) => repo.getCategory(id),
+        listAll: () => repo.listCategories(),
+        matches: (category, query) => category.name === query,
+        describe: "category",
+      },
+      idOrName,
+    );
   }
 
   // Hard delete plus un-assignment is performed as a sequence of writes, not a
@@ -65,7 +55,7 @@ export function createCategoryService(
 
   return {
     async create(input) {
-      const name = requireName(input.name);
+      const name = requireName(input.name, "Category");
       if (await findByName(name)) {
         throw new ValidationError(`Category "${name}" already exists`);
       }
@@ -98,7 +88,7 @@ export function createCategoryService(
       const existing = await resolve(idOrName);
       const updated: Category = { ...existing, updatedAt: clock() };
       if (changes.name !== undefined) {
-        const name = requireName(changes.name);
+        const name = requireName(changes.name, "Category");
         if (name !== existing.name && (await findByName(name, existing.id))) {
           throw new ValidationError(`Category "${name}" already exists`);
         }

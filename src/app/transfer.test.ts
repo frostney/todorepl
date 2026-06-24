@@ -1,31 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import type { Category, Todo } from "../domain/model";
 import { SCHEMA_VERSION, type StoreSnapshot, type TodoRepository } from "../storage/repository";
-import { createSqliteRepository } from "../storage/sqlite-store";
 import { ValidationError } from "./errors";
+import { NOW, registerMemoryRepos } from "./service-test-harness";
 import { exportData, importData } from "./transfer";
 
-const NOW = "2026-06-24T10:00:00.000Z";
 const TODAY = "2026-06-24";
 
-const openRepos: TodoRepository[] = [];
-
-afterEach(() => {
-  while (openRepos.length > 0) {
-    const repo = openRepos.pop();
-    try {
-      repo?.close();
-    } catch {
-      // ignore close failures during teardown
-    }
-  }
-});
-
-function makeRepo(): TodoRepository {
-  const repo = createSqliteRepository({ path: ":memory:" });
-  openRepos.push(repo);
-  return repo;
-}
+const makeRepo = registerMemoryRepos();
 
 const TODO_BASE: Todo = {
   id: "todo-1",

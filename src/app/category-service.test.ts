@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import type { Todo } from "../domain/model";
 import type { TodoRepository } from "../storage/repository";
-import { createSqliteRepository } from "../storage/sqlite-store";
 import {
   type CategoryService,
   type CreateCategoryInput,
@@ -9,42 +8,15 @@ import {
 } from "./category-service";
 import type { Clock } from "./clock";
 import { NotFoundError, ValidationError } from "./errors";
+import { fixedClock, NOW, registerMemoryRepos, steppingClock } from "./service-test-harness";
 
-const NOW = "2026-06-24T10:00:00.000Z";
-
-const openRepos: TodoRepository[] = [];
-
-afterEach(() => {
-  while (openRepos.length > 0) {
-    const repo = openRepos.pop();
-    try {
-      repo?.close();
-    } catch {
-      // ignore close failures during teardown
-    }
-  }
-});
-
-function fixedClock(now: string = NOW): Clock {
-  return () => now;
-}
-
-// Distinct, ordered timestamps so updatedAt can be told apart from createdAt.
-function steppingClock(start = NOW): Clock {
-  let tick = Date.parse(start);
-  return () => {
-    const value = new Date(tick).toISOString();
-    tick += 1_000;
-    return value;
-  };
-}
+const makeRepo = registerMemoryRepos();
 
 function makeService(clock: Clock = fixedClock()): {
   service: CategoryService;
   repo: TodoRepository;
 } {
-  const repo = createSqliteRepository({ path: ":memory:" });
-  openRepos.push(repo);
+  const repo = makeRepo();
   return { service: createCategoryService(repo, clock), repo };
 }
 

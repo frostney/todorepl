@@ -1,44 +1,17 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import type { Todo } from "../domain/model";
 import type { TodoRepository } from "../storage/repository";
-import { createSqliteRepository } from "../storage/sqlite-store";
 import type { Clock } from "./clock";
 import { AmbiguousMatchError, NotFoundError, ValidationError } from "./errors";
+import { fixedClock, NOW, registerMemoryRepos, steppingClock } from "./service-test-harness";
 import { type AddTodoInput, createTodoService, type TodoService } from "./todo-service";
 
-const NOW = "2026-06-24T10:00:00.000Z";
 const TODAY = "2026-06-24";
 
-const openRepos: TodoRepository[] = [];
-
-afterEach(() => {
-  while (openRepos.length > 0) {
-    const repo = openRepos.pop();
-    try {
-      repo?.close();
-    } catch {
-      // ignore close failures during teardown
-    }
-  }
-});
-
-function fixedClock(now: string = NOW): Clock {
-  return () => now;
-}
-
-// Distinct, ordered timestamps so updatedAt/completedAt can be told apart from createdAt.
-function steppingClock(start = "2026-06-24T10:00:00.000Z"): Clock {
-  let tick = Date.parse(start);
-  return () => {
-    const value = new Date(tick).toISOString();
-    tick += 1_000;
-    return value;
-  };
-}
+const makeRepo = registerMemoryRepos();
 
 function makeService(clock: Clock = fixedClock()): { service: TodoService; repo: TodoRepository } {
-  const repo = createSqliteRepository({ path: ":memory:" });
-  openRepos.push(repo);
+  const repo = makeRepo();
   return { service: createTodoService(repo, clock), repo };
 }
 
