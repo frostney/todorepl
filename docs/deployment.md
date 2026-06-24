@@ -12,6 +12,10 @@
 The package exposes the `todorepl` binary from `package.json`. Before publication, verify the binary
 works through a package install or link flow, not only through `bun run`.
 
+The binary currently points at `src/cli/main.ts`, which has a Bun shebang and must remain executable
+in Git. The package is not published yet; use a local package install to verify the bin path until a
+release workflow exists.
+
 ## CI
 
 CI should install with Bun and run:
@@ -19,6 +23,10 @@ CI should install with Bun and run:
 ```sh
 bun run check
 ```
+
+The GitHub Actions workflow installs dependencies with `bun install --frozen-lockfile` and then runs
+the local check gate. That gate includes tests, Biome, TypeScript, documentation checks, link checks,
+duplication checks, drift checks, and Fallow.
 
 ## Rollback
 

@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
 
 type PackageJson = {
+  bin?: Record<string, string>;
   packageManager?: string;
   scripts?: Record<string, string>;
 };
@@ -11,6 +12,7 @@ expectFile("VISION.md");
 expectFile("DEFINITION_OF_READY.md");
 expectFile("DEFINITION_OF_DONE.md");
 expectFile("CONTRIBUTING.md");
+expectFile(".github/workflows/ci.yml");
 
 for (const doc of [
   "docs/architecture.md",
@@ -30,6 +32,15 @@ expectSymlink(".claude/skills", "../.agents/skills");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as PackageJson;
 if (packageJson.packageManager !== "bun@1.3.14") {
   failures.push("package.json: packageManager must stay bun@1.3.14");
+}
+
+if (packageJson.bin?.todorepl !== "./src/cli/main.ts") {
+  failures.push("package.json: bin.todorepl must point to ./src/cli/main.ts");
+}
+
+const cliEntrypointMode = lstatSync("src/cli/main.ts").mode;
+if ((cliEntrypointMode & 0o111) === 0) {
+  failures.push("src/cli/main.ts: package binary entrypoint must be executable");
 }
 
 for (const script of [
@@ -66,6 +77,14 @@ if (!markdownlintConfig.includes(".agents/**")) {
 
 if (!readFileSync("docs/tooling.md", "utf8").includes("Drift Check")) {
   failures.push("docs/tooling.md: must document the drift check");
+}
+
+const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
+if (!ciWorkflow.includes("bun install --frozen-lockfile")) {
+  failures.push(".github/workflows/ci.yml: CI must install with Bun");
+}
+if (!ciWorkflow.includes("bun run check")) {
+  failures.push(".github/workflows/ci.yml: CI must run the local check gate");
 }
 
 if (existsSync("tests")) {
