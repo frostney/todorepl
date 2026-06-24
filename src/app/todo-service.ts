@@ -118,7 +118,10 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
       return persist(todo);
     },
 
-    list(filter) {
+    async list(filter) {
+      for (const value of [filter?.date, filter?.dateFrom, filter?.dateTo]) {
+        if (value !== undefined) validate(() => parseDateString(value));
+      }
       return repo.listTodos(filter);
     },
 

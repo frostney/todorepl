@@ -39,6 +39,15 @@ export async function importData(
   );
   const todos = rawTodos.map((raw, index) => parseRecord(`Todo[${index}]`, () => parseTodo(raw)));
 
+  const categoryIds = new Set(categories.map((category) => category.id));
+  for (const todo of todos) {
+    if (todo.categoryId !== undefined && !categoryIds.has(todo.categoryId)) {
+      throw new ValidationError(
+        `Todo "${todo.id}" references unknown category "${todo.categoryId}"`,
+      );
+    }
+  }
+
   await repo.importSnapshot({ version: SCHEMA_VERSION, todos, categories });
   return { todos: todos.length, categories: categories.length };
 }

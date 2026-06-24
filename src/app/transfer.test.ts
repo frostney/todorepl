@@ -218,4 +218,12 @@ describe("importData", () => {
       importData(repo, snapshot({ categories: [category({ name: "" })] })),
     ).rejects.toBeInstanceOf(ValidationError);
   });
+
+  test("rejects a todo referencing a category absent from the snapshot", async () => {
+    const repo = makeRepo();
+
+    await expect(
+      importData(repo, snapshot({ todos: [todo({ categoryId: "ghost" })] })),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
 });

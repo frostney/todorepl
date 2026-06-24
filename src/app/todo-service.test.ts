@@ -268,3 +268,11 @@ describe("remove", () => {
     expect(withDeleted.map((todo) => todo.id)).toEqual([created.id]);
   });
 });
+
+describe("list validation", () => {
+  test("rejects an invalid date filter", async () => {
+    const { service } = makeService();
+
+    await expect(service.list({ date: "2026-13-40" })).rejects.toBeInstanceOf(ValidationError);
+  });
+});
