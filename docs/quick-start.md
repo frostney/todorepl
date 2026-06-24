@@ -55,8 +55,9 @@ By default, todorepl resolves its local data file to:
 - Windows: `%LOCALAPPDATA%\todorepl\todos.json`, or
   `~/AppData/Local/todorepl/todos.json` when `LOCALAPPDATA` is unset
 
-Use `--data path` to override the local file path for commands that accept data. The current scaffold
-resolves the path for command output, but persistent todo storage is not implemented yet.
+Use `--data path` to override the local file path for commands that accept data. Todos and categories
+are persisted to this file as a versioned JSON document with atomic writes, and `--data <path>`
+selects an alternate data file.
 
 ## Command Reference
 

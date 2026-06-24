@@ -32,6 +32,20 @@ date and may also have a scheduled minute-of-day, duration, category, and emoji.
 - `src/storage/` owns persistence contracts and implementations.
 - `scripts/` owns project checks and one-off automation.
 
+## Persistence
+
+- All todos and categories live in a single local JSON document (`todos.json`).
+- The document holds `version`, `todos`, and `categories`; the schema is versioned (currently 1).
+- Opening a file with an unsupported or incompatible version fails with an actionable error.
+- Writes are atomic: the store writes a temp file in the same directory, then renames it over the
+  target, so an interrupted write never leaves partial JSON behind.
+- A missing data file bootstraps cleanly to an empty store; the file is not created until the first
+  save.
+- Corrupt or unreadable files fail with an actionable error that points the user at the file to
+  inspect or remove.
+- The repository contract is a load/save of the whole snapshot (`load()` / `save(snapshot)`), shared
+  by REPL and command mode.
+
 ## Agent Workflow Shape
 
 Every command that returns data should eventually support `--json`. Human output can be pleasant, but
