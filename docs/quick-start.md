@@ -27,6 +27,19 @@ Start the interactive shell:
 bun run todorepl
 ```
 
+The shell prints a `todo>` prompt and accepts the same commands as command mode, one per line:
+
+```text
+todo> add "Buy milk" --date 2026-06-24
+todo> list
+todo> done <id>
+todo> category list
+```
+
+Arguments are tokenized the way a shell tokenizes them, so wrap any value that contains spaces in
+quotes (for example `add "Buy milk"`). Type `help` for command help, and `exit` or `quit` to leave
+the shell. A bad command (unknown or invalid input) prints an error but keeps the session open.
+
 Run one command:
 
 ```sh

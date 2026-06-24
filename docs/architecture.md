@@ -12,8 +12,14 @@
 
 todorepl is a local-first command-line todo app for humans and agents. It has two entry modes:
 
-- `todorepl` starts an interactive shell.
+- `todorepl` starts an interactive shell that reads commands from a `todo>` prompt.
 - `todorepl <command>` runs a single automation-friendly command.
+
+The interactive shell is a thin layer: it tokenizes each input line (honoring quotes so values with
+spaces stay intact) and dispatches the tokens through the SAME Stricli app and `src/app/` application
+services as command mode, so there is no duplicated command logic and no behavior drift between the
+two modes. `help` shows command help and `exit` or `quit` ends the session. Command errors are
+non-fatal in the shell: an unknown or invalid command prints an error and the prompt stays open.
 
 Todos are date-centric, following the PlanStack model where every todo belongs to a `YYYY-MM-DD`
 date and may also have a scheduled minute-of-day, duration, category, and emoji.
