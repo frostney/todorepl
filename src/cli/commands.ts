@@ -1,4 +1,5 @@
 import { buildCommand, buildRouteMap } from "@stricli/core";
+import { resolveTodoDataPath } from "../storage/data-path";
 import { printJson, printTable } from "./output";
 
 type CommonFlags = {
@@ -34,7 +35,7 @@ const addCommand = buildCommand<CommonFlags, [string]>({
     const result = {
       status: "planned",
       name,
-      data: flags.data ?? "default",
+      data: resolveTodoDataPath(flags.data),
     };
     flags.json ? printJson(result) : printTable([result]);
   },

@@ -33,6 +33,13 @@ Run the full local gate:
 bun run check
 ```
 
+Validate the package binary from another Bun project:
+
+```sh
+bun install /path/to/todorepl
+./node_modules/.bin/todorepl --help
+```
+
 ## Tool Choices
 
 - Bun is the runtime and package manager.
@@ -41,6 +48,12 @@ bun run check
 - Biome owns formatting and linting.
 - Fallow provides repository quality evidence.
 - Lefthook runs staged-file autofix on commit.
+
+## GitHub Actions
+
+CI uses `oven-sh/setup-bun` with Bun 1.3.14, installs with `bun install --frozen-lockfile`, and runs
+`bun run check`. The local check script remains the source of truth for tests, Biome, TypeScript,
+Markdown, link checks, duplication checks, drift checks, and Fallow.
 
 ## Documentation Checks
 
@@ -62,4 +75,4 @@ generated skills as authored source.
 
 `scripts/check-drift.ts` checks that the documented project structure matches the actual repository.
 It verifies governance files, docs template files, agent symlinks, Bun-only lockfiles, required
-package scripts, and generated-skill handling.
+package scripts, CI presence, package binary wiring, and generated-skill handling.
