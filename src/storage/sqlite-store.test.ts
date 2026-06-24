@@ -102,6 +102,13 @@ describe("createSqliteRepository bootstrap", () => {
     expect(await repo.listTodos()).toEqual([]);
     expect(await repo.listCategories()).toEqual([]);
   });
+
+  test("creates missing parent directories for the data file", async () => {
+    const path = join(await tempDir(), "nested", "deeper", "todos.db");
+    const repo = track(createSqliteRepository({ path }));
+
+    expect(await repo.listTodos()).toEqual([]);
+  });
 });
 
 describe("todo persistence", () => {

@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import type { Category, CategoryId, Todo, TodoId } from "../domain/model";
 import { resolveTodoDataPath } from "./data-path";
 import {
@@ -155,6 +157,9 @@ const CATEGORY_ORDER_BY = ` ORDER BY name ASC, id ASC`;
 export function createSqliteRepository(options?: RepositoryOptions): TodoRepository {
   const path = options?.path === ":memory:" ? ":memory:" : resolveTodoDataPath(options?.path);
 
+  if (path !== ":memory:") {
+    mkdirSync(dirname(path), { recursive: true });
+  }
   const db = new Database(path, { create: true });
   try {
     const uv = (db.query("PRAGMA user_version").get() as { user_version: number }).user_version;
