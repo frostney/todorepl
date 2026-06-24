@@ -2,31 +2,17 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { StricliProcess } from "@stricli/core";
 import type { Todo } from "../domain/model";
-import { createSqliteRepository } from "../storage/sqlite-store";
 import { createApp } from "./app";
-import { type AppContext, createAppContext } from "./context";
+import { createCapturingContext } from "./cli-test-harness";
 import { processReplInput } from "./repl";
 
-const NOW = "2026-06-24T10:00:00.000Z";
 const TODAY = "2026-06-24";
 
 const app = createApp();
 
 let workDir: string;
 let dbFile: string;
-let stdout: string;
-let stderr: string;
-let context: AppContext;
-
-// Output may arrive on the injected StricliProcess streams or via
-// console.log/console.error, so capture both into the same buffers (mirroring
-// commands.test.ts) and reset them before each fed line.
-function resetCapture(): void {
-  stdout = "";
-  stderr = "";
-}
 
 beforeAll(async () => {
   workDir = await mkdtemp(join(tmpdir(), "todorepl-repl-"));
@@ -40,24 +26,6 @@ afterAll(async () => {
 // the multiple lines a single test feeds (":memory:" would reset on every open).
 beforeEach(async () => {
   dbFile = join(await mkdtemp(join(workDir, "db-")), "todos.db");
-  resetCapture();
-  const proc: StricliProcess = {
-    stdout: {
-      write: (text: string) => {
-        stdout += text;
-      },
-    },
-    stderr: {
-      write: (text: string) => {
-        stderr += text;
-      },
-    },
-  };
-  context = createAppContext({
-    process: proc,
-    openStore: () => createSqliteRepository({ path: dbFile }),
-    clock: () => NOW,
-  });
 });
 
 afterEach(async () => {
@@ -66,26 +34,12 @@ afterEach(async () => {
 
 type FedResult = { result: "continue" | "exit"; stdout: string; stderr: string };
 
-// Resets buffers, dispatches one line through the REPL, and returns the outcome
-// plus whatever it wrote. console.log/console.error are merged into the same
-// buffers for the duration of the call.
+// Dispatches one line through the REPL against a fresh capturing context (bound
+// to the per-test db file) and returns the outcome plus whatever it wrote.
 async function feed(line: string): Promise<FedResult> {
-  resetCapture();
-  const originalLog = console.log;
-  const originalError = console.error;
-  console.log = (...parts: unknown[]) => {
-    stdout += `${parts.map(String).join(" ")}\n`;
-  };
-  console.error = (...parts: unknown[]) => {
-    stderr += `${parts.map(String).join(" ")}\n`;
-  };
-  try {
-    const result = await processReplInput(line, app, context);
-    return { result, stdout, stderr };
-  } finally {
-    console.log = originalLog;
-    console.error = originalError;
-  }
+  const { context, read } = createCapturingContext(dbFile);
+  const result = await processReplInput(line, app, context);
+  return { result, ...read() };
 }
 
 const parseTodo = (text: string): Todo => JSON.parse(text) as Todo;

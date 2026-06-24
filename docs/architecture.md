@@ -75,8 +75,59 @@ date and may also have a scheduled minute-of-day, duration, category, and emoji.
 
 ## Agent Workflow Shape
 
-Every command that returns data should eventually support `--json`. Human output can be pleasant, but
-machine-readable output is part of the product surface, not a debug option.
+Every command that returns data supports `--json`. Human output can be pleasant, but machine-readable
+output is part of the product surface, not a debug option. With `--json`, single-record commands
+(`add`, `show`, `done`, `edit`, `move`, `delete`) print one Todo object; `list` prints a Todo array;
+the `category` subcommands print a Category object (or, for `category list`, a Category array);
+`export` prints the snapshot object; and `import --json` prints an import summary.
+
+### Todo JSON shape
+
+A Todo object always carries these fields:
+
+- `id` (string): stable unique id.
+- `name` (string): todo text.
+- `date` (string): `YYYY-MM-DD` the todo belongs to.
+- `status` (string): `"open"` or `"done"`.
+- `order` (number): position within its date.
+- `createdAt`, `updatedAt` (string): ISO-8601 timestamps.
+
+Optional fields are present only when set:
+
+- `categoryId` (string): id of the referenced category.
+- `emoji` (string).
+- `scheduledTime` (number): minute of day (`0`-`1439`, divisible by 15).
+- `duration` (number): one of `15`, `30`, `60`.
+- `completedAt` (string): ISO-8601 timestamp set when the todo is completed.
+- `deletedAt` (string): ISO-8601 timestamp set when the todo is soft-deleted.
+
+### Category JSON shape
+
+A Category object always carries `id`, `name`, `createdAt`, and `updatedAt`, plus optional `color`
+and `emoji` when set.
+
+### Export and import
+
+`export` writes the full active data set as a JSON snapshot to stdout. The snapshot is
+`{ version, todos, categories }`, where `version` is the current schema version (`1`), `todos` is a
+Todo array, and `categories` is a Category array. Output is deterministic: todos are ordered by
+`date`, then `order`, then `id`, and categories by `name`, then `id`.
+
+`import` reads a snapshot from `--file <path>` or, when no file is given, from stdin. It validates the
+ENTIRE payload before mutating anything: malformed JSON, a missing or wrong-typed `version` / `todos`
+/ `categories`, or any invalid record is rejected as a validation error, and existing data is left
+unchanged. A valid import replaces the data set inside a single transaction. With `--json`, `import`
+prints `{ "imported": { "todos": N, "categories": M } }`; otherwise it prints a human-readable count.
+
+### Exit codes
+
+Commands signal outcomes through process exit codes so scripts can branch without parsing output:
+
+- `0`: Success.
+- `1`: Other or unexpected error, including an unknown command or bad flags.
+- `2`: Validation or invalid input (also an ambiguous id prefix).
+- `3`: Record not found.
+- `4`: Storage failure (corrupt database or unsupported schema version).
 
 ## Drift Check
 

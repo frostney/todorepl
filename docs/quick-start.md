@@ -80,14 +80,14 @@ argument may be given as a unique id prefix, and any `<idOrName>` argument resol
 exact id or exact (unique) name.
 
 ```text
-todorepl add <name> [--date YYYY-MM-DD] [--time HH:MM] [--duration min]
+todorepl add <name> [--date YYYY-MM-DD] [--time minutes] [--duration min]
                     [--category name] [--emoji char] [--data path] [--json]
 todorepl list [--date YYYY-MM-DD] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
               [--category name] [--status open|done] [--scheduled] [--unscheduled]
               [--include-deleted] [--data path] [--json]
 todorepl show <id> [--data path] [--json]
 todorepl done <id> [--data path] [--json]
-todorepl edit <id> [--name text] [--time HH:MM] [--duration min]
+todorepl edit <id> [--name text] [--time minutes] [--duration min]
                    [--category name] [--emoji char] [--data path] [--json]
 todorepl move <id> <date> [--data path] [--json]
 todorepl delete <id> [--data path] [--json]
@@ -97,6 +97,8 @@ todorepl category show <idOrName> [--data path] [--json]
 todorepl category edit <idOrName> [--name text] [--color hex] [--emoji char]
                        [--data path] [--json]
 todorepl category delete <idOrName> [--force] [--data path] [--json]
+todorepl export [--data path] [--json]
+todorepl import [--file path] [--data path] [--json]
 todorepl --help
 todorepl --version
 ```
@@ -109,7 +111,10 @@ categories, which carry a name plus optional color and emoji and are referenced 
 (unique) name. On todo commands, `--category <name-or-id>` resolves to an existing category, and a
 category that does not exist is an error. Deleting a category referenced by todos is refused unless
 `--force` is given, which deletes the category and un-assigns it from those todos (their category is
-cleared). Print machine-readable output by adding `--json`:
+cleared). `export` writes the full data set as a deterministic JSON snapshot
+(`{ version, todos, categories }`) to stdout, and `import` reads such a snapshot from `--file path` or
+stdin, validating the whole payload before it replaces the current data. Print machine-readable output
+by adding `--json`:
 
 ```sh
 bun run todorepl -- list --json

@@ -2,34 +2,14 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type Application, buildApplication, run, type StricliProcess } from "@stricli/core";
-import { exitCodeForError } from "../app/errors";
 import type { Category, Todo } from "../domain/model";
-import { createSqliteRepository } from "../storage/sqlite-store";
-import { rootRoute } from "./commands";
-import { type AppContext, createAppContext } from "./context";
+import { type CliResult, makeRunCli } from "./cli-test-harness";
 
-const NOW = "2026-06-24T10:00:00.000Z";
 const TODAY = "2026-06-24";
-
-// Mirror commands.test.ts: 0 (success), 2 (ValidationError), and 3 (NotFoundError)
-// all surface on ctx.process.exitCode via Stricli's determineExitCode mapping.
-const app: Application<AppContext> = buildApplication(rootRoute, {
-  name: "todorepl",
-  versionInfo: { currentVersion: "0.1.0" },
-  scanner: { caseStyle: "allow-kebab-for-camel" },
-  documentation: { caseStyle: "convert-camel-to-kebab" },
-  determineExitCode: exitCodeForError,
-});
-
-type CliResult = {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-};
 
 let workDir: string;
 let dbFile: string;
+let runCli: (args: string[]) => Promise<CliResult>;
 
 beforeAll(async () => {
   workDir = await mkdtemp(join(tmpdir(), "todorepl-category-"));
@@ -44,59 +24,12 @@ afterAll(async () => {
 // every open since each command opens its own connection).
 beforeEach(async () => {
   dbFile = join(await mkdtemp(join(workDir, "db-")), "todos.db");
+  runCli = makeRunCli(dbFile);
 });
 
 afterEach(async () => {
   await rm(dbFile, { recursive: true, force: true });
 });
-
-// Drives the real Stricli application end-to-end. Output may arrive via the
-// injected StricliProcess streams or via console.log/error, so capture both.
-async function runCli(args: string[]): Promise<CliResult> {
-  let stdout = "";
-  let stderr = "";
-
-  const proc: StricliProcess = {
-    stdout: {
-      write: (text: string): void => {
-        stdout += text;
-      },
-    },
-    stderr: {
-      write: (text: string): void => {
-        stderr += text;
-      },
-    },
-  };
-
-  const context = createAppContext({
-    process: proc,
-    openStore: () => createSqliteRepository({ path: dbFile }),
-    clock: () => NOW,
-  });
-
-  const originalLog = console.log;
-  const originalError = console.error;
-  console.log = (...parts: unknown[]): void => {
-    stdout += `${parts.map(String).join(" ")}\n`;
-  };
-  console.error = (...parts: unknown[]): void => {
-    stderr += `${parts.map(String).join(" ")}\n`;
-  };
-
-  try {
-    await run(app, args, context);
-  } finally {
-    console.log = originalLog;
-    console.error = originalError;
-  }
-
-  return { stdout, stderr, exitCode: asExitCode(context.process.exitCode) };
-}
-
-function asExitCode(code: StricliProcess["exitCode"]): number {
-  return typeof code === "number" ? code : 0;
-}
 
 function parseCategory(stdout: string): Category {
   return JSON.parse(stdout) as Category;
