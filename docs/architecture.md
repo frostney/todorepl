@@ -57,6 +57,16 @@ date and may also have a scheduled minute-of-day, duration, category, and emoji.
   REPL and command mode; it is defined in `src/storage/repository.ts` and implemented in
   `src/storage/sqlite-store.ts`.
 
+## Categories
+
+- Categories are first-class records with a name and optional color and emoji; they have no schedules
+  in the MVP.
+- Todos reference a category through `categoryId`, and category arguments resolve by exact id or
+  exact (unique) name, so `--category <name-or-id>` on todo commands must point at an existing
+  category or the command fails.
+- Deleting a category that is referenced by todos is refused unless `--force` is given; with `--force`
+  the category is removed and un-assigned from those todos, clearing their category.
+
 ## Agent Workflow Shape
 
 Every command that returns data should eventually support `--json`. Human output can be pleasant, but

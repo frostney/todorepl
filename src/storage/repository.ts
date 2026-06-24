@@ -29,6 +29,7 @@ export interface TodoRepository {
   listCategories(): Promise<Category[]>;
   getCategory(id: CategoryId): Promise<Category | undefined>;
   putCategory(category: Category): Promise<void>;
+  deleteCategory(id: CategoryId): Promise<void>;
   exportSnapshot(): Promise<StoreSnapshot>;
   importSnapshot(snapshot: StoreSnapshot): Promise<void>;
   close(): void;

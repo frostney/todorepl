@@ -63,7 +63,8 @@ are stored in a local SQLite database with a versioned schema and transactional 
 
 Every data-returning command accepts `--data path` to select an alternate database file and `--json`
 to emit the raw record(s): a single Todo object, or an array of Todo objects for `list`. Any `<id>`
-argument may be given as a unique id prefix.
+argument may be given as a unique id prefix, and any `<idOrName>` argument resolves a category by
+exact id or exact (unique) name.
 
 ```text
 todorepl add <name> [--date YYYY-MM-DD] [--time HH:MM] [--duration min]
@@ -77,6 +78,12 @@ todorepl edit <id> [--name text] [--time HH:MM] [--duration min]
                    [--category name] [--emoji char] [--data path] [--json]
 todorepl move <id> <date> [--data path] [--json]
 todorepl delete <id> [--data path] [--json]
+todorepl category create <name> [--color hex] [--emoji char] [--data path] [--json]
+todorepl category list [--data path] [--json]
+todorepl category show <idOrName> [--data path] [--json]
+todorepl category edit <idOrName> [--name text] [--color hex] [--emoji char]
+                       [--data path] [--json]
+todorepl category delete <idOrName> [--force] [--data path] [--json]
 todorepl --help
 todorepl --version
 ```
@@ -84,7 +91,12 @@ todorepl --version
 `add` creates a todo on a date (defaulting to today). `list` filters by date, range, category, status,
 and scheduling, and hides soft-deleted todos unless `--include-deleted` is set. `show` and `done`
 inspect and complete a single todo, `edit` updates its fields, `move` reschedules it to another date,
-and `delete` performs a soft delete. Print machine-readable output by adding `--json`:
+and `delete` performs a soft delete. The `category` subcommands create, list, show, edit, and delete
+categories, which carry a name plus optional color and emoji and are referenced by exact id or exact
+(unique) name. On todo commands, `--category <name-or-id>` resolves to an existing category, and a
+category that does not exist is an error. Deleting a category referenced by todos is refused unless
+`--force` is given, which deletes the category and un-assigns it from those todos (their category is
+cleared). Print machine-readable output by adding `--json`:
 
 ```sh
 bun run todorepl -- list --json

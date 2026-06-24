@@ -201,6 +201,10 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
       categoryUpsert.run(...categoryParams(category));
     },
 
+    async deleteCategory(id: CategoryId): Promise<void> {
+      db.query("DELETE FROM categories WHERE id = ?").run(id);
+    },
+
     async exportSnapshot(): Promise<StoreSnapshot> {
       const todoRows = db.query(`SELECT * FROM todos${TODO_ORDER_BY}`).all() as TodoRow[];
       const categoryRows = db
