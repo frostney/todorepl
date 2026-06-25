@@ -108,7 +108,7 @@ and `emoji` when set.
 
 ### Export and import
 
-`export` writes the full active data set as a JSON snapshot to stdout. The snapshot is
+`export` writes all active (non-soft-deleted) todos and categories as a JSON snapshot to stdout. The snapshot is
 `{ version, todos, categories }`, where `version` is the current schema version (`1`), `todos` is a
 Todo array, and `categories` is a Category array. Output is deterministic: todos are ordered by
 `date`, then `order`, then `id`, and categories by `name`, then `id`.

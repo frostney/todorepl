@@ -52,6 +52,14 @@ function applyOptionalFields(target: Partial<OptionalTodoFields>, input: EditTod
   }
 }
 
+function localDateOf(iso: string): string {
+  const at = new Date(iso);
+  const year = at.getFullYear();
+  const month = String(at.getMonth() + 1).padStart(2, "0");
+  const day = String(at.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function createTodoService(repo: TodoRepository, clock: Clock = systemClock): TodoService {
   async function nextOrder(date: string): Promise<number> {
     const existing = await repo.listTodos({ date, includeDeleted: true });
@@ -82,7 +90,7 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
       const date =
         input.date !== undefined
           ? asValidationError(() => parseDateString(input.date as string))
-          : clock().slice(0, 10);
+          : localDateOf(clock());
       const timestamp = clock();
       const todo: Todo = {
         id: crypto.randomUUID(),

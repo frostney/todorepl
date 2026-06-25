@@ -169,6 +169,12 @@ describe("identifier matching", () => {
 
     await expect(service.get("dup")).rejects.toBeInstanceOf(AmbiguousMatchError);
   });
+
+  test("get throws NotFoundError for an empty id", async () => {
+    const { service } = makeService();
+
+    await expect(service.get("")).rejects.toBeInstanceOf(NotFoundError);
+  });
 });
 
 describe("complete", () => {

@@ -208,4 +208,12 @@ describe("importData", () => {
       importData(repo, snapshot({ todos: [todo({ categoryId: "ghost" })] })),
     ).rejects.toBeInstanceOf(ValidationError);
   });
+
+  test("rejects a schema version below 1", async () => {
+    const repo = makeRepo();
+
+    await expect(importData(repo, snapshot({ version: 0 }))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+  });
 });

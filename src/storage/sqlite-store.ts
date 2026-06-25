@@ -167,6 +167,7 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
     db.run(SCHEMA_DDL);
     if (uv === 0) db.run(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   } catch (error) {
+    db.close();
     if (error instanceof StoreVersionError) throw error;
     throw new StoreCorruptError(path, error);
   }
@@ -223,7 +224,7 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
     },
 
     async importSnapshot(snapshot: StoreSnapshot): Promise<void> {
-      if (snapshot.version > SCHEMA_VERSION) {
+      if (snapshot.version !== SCHEMA_VERSION) {
         throw new StoreVersionError(path, snapshot.version);
       }
       const replaceAll = db.transaction(() => {

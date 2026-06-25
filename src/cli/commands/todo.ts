@@ -1,4 +1,5 @@
 import { buildCommand } from "@stricli/core";
+import { ValidationError } from "../../app/errors";
 import type { AddTodoInput, EditTodoInput } from "../../app/todo-service";
 import type { Todo } from "../../domain/model";
 import type { TodoFilter } from "../../storage/repository";
@@ -51,6 +52,18 @@ function renderTodo(todo: Todo, json: boolean | undefined): string {
 
 function renderTodos(todos: readonly Todo[], json: boolean | undefined): string {
   return json ? formatJson(todos) : formatTable(todos.map(displayRow));
+}
+
+function resolveScheduledFilter(
+  scheduled: boolean | undefined,
+  unscheduled: boolean | undefined,
+): boolean | undefined {
+  if (scheduled && unscheduled) {
+    throw new ValidationError("Pass only one of --scheduled or --unscheduled");
+  }
+  if (scheduled) return true;
+  if (unscheduled) return false;
+  return undefined;
 }
 
 type AddFlags = CommonFlags & {
@@ -136,8 +149,8 @@ export const list = buildCommand<ListFlags, [], AppContext>({
     if (flags.from !== undefined) filter.dateFrom = flags.from;
     if (flags.to !== undefined) filter.dateTo = flags.to;
     if (flags.status !== undefined) filter.status = flags.status;
-    if (flags.scheduled) filter.scheduled = true;
-    else if (flags.unscheduled) filter.scheduled = false;
+    const scheduled = resolveScheduledFilter(flags.scheduled, flags.unscheduled);
+    if (scheduled !== undefined) filter.scheduled = scheduled;
     if (flags.includeDeleted) filter.includeDeleted = true;
     const todos = await withServices(this, flags.data, async ({ todos, categories }) => {
       if (flags.category !== undefined)

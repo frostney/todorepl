@@ -91,6 +91,11 @@ describe("list", () => {
     expect(todos.map((todo) => todo.id)).toEqual([done.id]);
     expect(todos.map((todo) => todo.id)).not.toContain(open.id);
   });
+
+  test("rejects conflicting --scheduled and --unscheduled with exit code 2", async () => {
+    const result = await runCli(["list", "--scheduled", "--unscheduled", "--json"]);
+    expect(result.exitCode).toBe(2);
+  });
 });
 
 describe("show", () => {

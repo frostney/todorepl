@@ -75,7 +75,8 @@ are stored in a local SQLite database with a versioned schema and transactional 
 ## Command Reference
 
 Every data-returning command accepts `--data path` to select an alternate database file and `--json`
-to emit the raw record(s): a single Todo object, or an array of Todo objects for `list`. Any `<id>`
+to emit that command's raw record(s) as JSON: a Todo (or a Todo array for `list`), a Category for the
+`category` commands, the full snapshot for `export`, or an import summary for `import`. Any `<id>`
 argument may be given as a unique id prefix, and any `<idOrName>` argument resolves a category by
 exact id or exact (unique) name.
 

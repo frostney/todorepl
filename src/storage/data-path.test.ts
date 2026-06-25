@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { resolve } from "node:path";
 import { resolveTodoDataPath } from "./data-path";
 
 describe("resolveTodoDataPath", () => {
@@ -53,6 +54,6 @@ describe("resolveTodoDataPath", () => {
   });
 
   test("resolves explicit data path overrides", () => {
-    expect(resolveTodoDataPath("relative/todos.db")).toBe(`${process.cwd()}/relative/todos.db`);
+    expect(resolveTodoDataPath("relative/todos.db")).toBe(resolve("relative/todos.db"));
   });
 });

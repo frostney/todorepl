@@ -26,6 +26,9 @@ export async function resolveByIdentifier<T>(
   },
   query: string,
 ): Promise<T> {
+  if (query.length === 0) {
+    throw new NotFoundError(`No ${options.describe} matches "${query}"`);
+  }
   const exact = await options.getExact(query);
   if (exact) {
     return exact;

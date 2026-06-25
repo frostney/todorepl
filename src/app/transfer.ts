@@ -29,7 +29,7 @@ export async function importData(
     );
   }
 
-  if (version > SCHEMA_VERSION) {
+  if (!Number.isInteger(version) || version < 1 || version > SCHEMA_VERSION) {
     throw new ValidationError(
       `Import payload uses unsupported schema version ${version} (supported: ${SCHEMA_VERSION})`,
     );
