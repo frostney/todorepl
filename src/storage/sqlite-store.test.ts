@@ -1,0 +1,428 @@
+import { Database } from "bun:sqlite";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { Category, Todo } from "../domain/model";
+import {
+  emptySnapshot,
+  SCHEMA_VERSION,
+  StoreCorruptError,
+  type StoreSnapshot,
+  StoreVersionError,
+  type TodoFilter,
+  type TodoRepository,
+} from "./repository";
+import { createSqliteRepository } from "./sqlite-store";
+
+const tempDirs: string[] = [];
+const openRepos: TodoRepository[] = [];
+
+afterEach(async () => {
+  while (openRepos.length > 0) {
+    const repo = openRepos.pop();
+    try {
+      repo?.close();
+    } catch {
+      // ignore close failures during teardown
+    }
+  }
+  while (tempDirs.length > 0) {
+    const dir = tempDirs.pop();
+    if (dir !== undefined) {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+async function tempDir(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), "todorepl-sqlite-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+async function tempPath(name = "todos.sqlite"): Promise<string> {
+  return join(await tempDir(), name);
+}
+
+function track(repo: TodoRepository): TodoRepository {
+  openRepos.push(repo);
+  return repo;
+}
+
+function makeRepo(): TodoRepository {
+  return track(createSqliteRepository({ path: ":memory:" }));
+}
+
+const TODO_BASE: Todo = {
+  id: "todo-base",
+  name: "Base todo",
+  date: "2026-06-24",
+  status: "open",
+  order: 0,
+  createdAt: "2026-06-24T10:00:00.000Z",
+  updatedAt: "2026-06-24T10:00:00.000Z",
+};
+
+const CATEGORY_BASE: Category = {
+  id: "cat-base",
+  name: "Base category",
+  createdAt: "2026-06-24T10:00:00.000Z",
+  updatedAt: "2026-06-24T10:00:00.000Z",
+};
+
+// Spread only over the base so absent optionals are never set to `undefined`
+// (exactOptionalPropertyTypes rejects { field: undefined }).
+function todo(overrides: Partial<Todo> = {}): Todo {
+  return { ...TODO_BASE, ...overrides };
+}
+
+function category(overrides: Partial<Category> = {}): Category {
+  return { ...CATEGORY_BASE, ...overrides };
+}
+
+function byId<T extends { id: string }>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => a.id.localeCompare(b.id));
+}
+
+function ids(rows: readonly { id: string }[]): string[] {
+  return rows.map((row) => row.id);
+}
+
+async function seed(repo: TodoRepository, rows: readonly Todo[]): Promise<void> {
+  for (const row of rows) {
+    await repo.putTodo(row);
+  }
+}
+
+describe("createSqliteRepository bootstrap", () => {
+  test("fresh path bootstraps an empty store", async () => {
+    const repo = track(createSqliteRepository({ path: await tempPath() }));
+
+    expect(await repo.listTodos()).toEqual([]);
+    expect(await repo.listCategories()).toEqual([]);
+  });
+
+  test("creates missing parent directories for the data file", async () => {
+    const path = join(await tempDir(), "nested", "deeper", "todos.db");
+    const repo = track(createSqliteRepository({ path }));
+
+    expect(await repo.listTodos()).toEqual([]);
+  });
+});
+
+describe("todo persistence", () => {
+  test("putTodo then getTodo round-trips a fully populated todo", async () => {
+    const repo = makeRepo();
+    const full = todo({
+      id: "todo-full",
+      name: "Fully populated",
+      date: "2026-07-01",
+      status: "done",
+      order: 3,
+      categoryId: "cat-work",
+      emoji: "🚨",
+      scheduledTime: 540,
+      duration: 30,
+      completedAt: "2026-07-01T12:00:00.000Z",
+      deletedAt: "2026-07-02T08:00:00.000Z",
+      createdAt: "2026-07-01T09:00:00.000Z",
+      updatedAt: "2026-07-01T12:00:00.000Z",
+    });
+
+    await repo.putTodo(full);
+
+    expect(await repo.getTodo("todo-full")).toEqual(full);
+  });
+
+  test("getTodo returns undefined for an unknown id", async () => {
+    const repo = makeRepo();
+
+    expect(await repo.getTodo("missing")).toBeUndefined();
+  });
+
+  test("putTodo replaces an existing id", async () => {
+    const repo = makeRepo();
+    await repo.putTodo(todo({ id: "todo-1", name: "Original", order: 1 }));
+
+    const replacement = todo({
+      id: "todo-1",
+      name: "Replaced",
+      status: "done",
+      order: 9,
+      updatedAt: "2026-06-25T10:00:00.000Z",
+    });
+    await repo.putTodo(replacement);
+
+    expect(await repo.getTodo("todo-1")).toEqual(replacement);
+    expect(await repo.listTodos()).toHaveLength(1);
+  });
+});
+
+describe("category persistence", () => {
+  test("putCategory then getCategory round-trips color and emoji", async () => {
+    const repo = makeRepo();
+    const full = category({
+      id: "cat-work",
+      name: "Work",
+      color: "#ff8800",
+      emoji: "💼",
+    });
+
+    await repo.putCategory(full);
+
+    expect(await repo.getCategory("cat-work")).toEqual(full);
+  });
+
+  test("getCategory returns undefined for an unknown id and putCategory replaces by id", async () => {
+    const repo = makeRepo();
+    expect(await repo.getCategory("missing")).toBeUndefined();
+
+    await repo.putCategory(category({ id: "cat-1", name: "First" }));
+    const replacement = category({ id: "cat-1", name: "Renamed", emoji: "🏷️" });
+    await repo.putCategory(replacement);
+
+    expect(await repo.getCategory("cat-1")).toEqual(replacement);
+    expect(await repo.listCategories()).toHaveLength(1);
+  });
+});
+
+describe("listTodos filtering", () => {
+  const dataset: readonly Todo[] = [
+    todo({ id: "a", date: "2026-06-24", status: "done", categoryId: "work", order: 0 }),
+    todo({
+      id: "b",
+      date: "2026-06-24",
+      status: "open",
+      categoryId: "work",
+      order: 1,
+      scheduledTime: 540,
+      duration: 60,
+    }),
+    todo({ id: "c", date: "2026-06-24", status: "open", categoryId: "home", order: 2 }),
+    todo({ id: "d", date: "2026-06-25", status: "done", categoryId: "home", order: 0 }),
+    todo({ id: "e", date: "2026-06-26", status: "open", categoryId: "work", order: 0 }),
+  ];
+
+  async function seeded(): Promise<TodoRepository> {
+    const repo = makeRepo();
+    await seed(repo, dataset);
+    return repo;
+  }
+
+  test("date + status finds today's completed todos", async () => {
+    const repo = await seeded();
+    const filter: TodoFilter = { date: "2026-06-24", status: "done" };
+
+    expect(ids(await repo.listTodos(filter))).toEqual(["a"]);
+  });
+
+  test("status open matches across dates", async () => {
+    const repo = await seeded();
+
+    expect(ids(await repo.listTodos({ status: "open" }))).toEqual(["b", "c", "e"]);
+  });
+
+  test("categoryId narrows to one category", async () => {
+    const repo = await seeded();
+
+    expect(ids(await repo.listTodos({ categoryId: "home" }))).toEqual(["c", "d"]);
+  });
+
+  test("scheduled true returns only todos with a scheduled time", async () => {
+    const repo = await seeded();
+
+    expect(ids(await repo.listTodos({ scheduled: true }))).toEqual(["b"]);
+  });
+
+  test("scheduled false returns only unscheduled todos", async () => {
+    const repo = await seeded();
+
+    expect(ids(await repo.listTodos({ scheduled: false }))).toEqual(["a", "c", "d", "e"]);
+  });
+
+  test("dateFrom and dateTo bound an inclusive range", async () => {
+    const repo = await seeded();
+    const filter: TodoFilter = { dateFrom: "2026-06-24", dateTo: "2026-06-25" };
+
+    expect(ids(await repo.listTodos(filter))).toEqual(["a", "b", "c", "d"]);
+  });
+
+  test("filters AND-combine", async () => {
+    const repo = await seeded();
+    const filter: TodoFilter = { date: "2026-06-24", status: "open", categoryId: "work" };
+
+    expect(ids(await repo.listTodos(filter))).toEqual(["b"]);
+  });
+});
+
+describe("soft delete visibility", () => {
+  test("soft-deleted todos are excluded by default and included on request", async () => {
+    const repo = makeRepo();
+    const live = todo({ id: "live", date: "2026-06-24", order: 0 });
+    const deleted = todo({
+      id: "deleted",
+      date: "2026-06-24",
+      order: 1,
+      deletedAt: "2026-06-24T11:00:00.000Z",
+    });
+    await seed(repo, [live, deleted]);
+
+    expect(ids(await repo.listTodos())).toEqual(["live"]);
+    expect(ids(await repo.listTodos({ includeDeleted: true }))).toEqual(["live", "deleted"]);
+    expect(await repo.getTodo("deleted")).toEqual(deleted);
+  });
+});
+
+describe("deterministic ordering", () => {
+  test("listTodos orders by date ASC, order ASC, id ASC", async () => {
+    const repo = makeRepo();
+    await seed(repo, [
+      todo({ id: "z", date: "2026-06-25", order: 0 }),
+      todo({ id: "m", date: "2026-06-24", order: 5 }),
+      todo({ id: "b", date: "2026-06-24", order: 1 }),
+      todo({ id: "a", date: "2026-06-24", order: 1 }),
+      todo({ id: "y", date: "2026-06-23", order: 9 }),
+    ]);
+
+    expect(ids(await repo.listTodos())).toEqual(["y", "a", "b", "m", "z"]);
+  });
+});
+
+describe("snapshot import and export", () => {
+  function sampleSnapshot(): StoreSnapshot {
+    return {
+      version: SCHEMA_VERSION,
+      todos: [
+        todo({ id: "t1", date: "2026-06-24", order: 0, categoryId: "work" }),
+        todo({
+          id: "t2",
+          date: "2026-06-25",
+          order: 1,
+          status: "done",
+          completedAt: "2026-06-25T12:00:00.000Z",
+        }),
+        todo({
+          id: "t3",
+          date: "2026-06-26",
+          order: 0,
+          deletedAt: "2026-06-26T09:00:00.000Z",
+        }),
+      ],
+      categories: [
+        category({ id: "work", name: "Work", color: "#0088ff", emoji: "💼" }),
+        category({ id: "home", name: "Home" }),
+      ],
+    };
+  }
+
+  test("importSnapshot then exportSnapshot round-trips losslessly", async () => {
+    const repo = makeRepo();
+    const snapshot = sampleSnapshot();
+
+    await repo.importSnapshot(snapshot);
+    const exported = await repo.exportSnapshot();
+
+    expect(exported.version).toBe(SCHEMA_VERSION);
+    expect(byId(exported.todos)).toEqual(byId(snapshot.todos));
+    expect(byId(exported.categories)).toEqual(byId(snapshot.categories));
+  });
+
+  test("exportSnapshot includes soft-deleted todos in deterministic order", async () => {
+    const repo = makeRepo();
+    await repo.importSnapshot(sampleSnapshot());
+
+    const exported = await repo.exportSnapshot();
+
+    expect(ids(exported.todos)).toEqual(["t1", "t2", "t3"]);
+    expect(ids(byId(exported.categories))).toEqual(["home", "work"]);
+  });
+
+  test("importSnapshot replaces all prior data", async () => {
+    const repo = makeRepo();
+    await repo.importSnapshot({
+      version: SCHEMA_VERSION,
+      todos: [todo({ id: "old-todo" })],
+      categories: [category({ id: "old-cat" })],
+    });
+
+    await repo.importSnapshot({
+      version: SCHEMA_VERSION,
+      todos: [todo({ id: "new-todo" })],
+      categories: [category({ id: "new-cat" })],
+    });
+
+    expect(ids(await repo.listTodos())).toEqual(["new-todo"]);
+    expect(ids(await repo.listCategories())).toEqual(["new-cat"]);
+  });
+
+  test("importSnapshot of an empty snapshot clears the store", async () => {
+    const repo = makeRepo();
+    await seed(repo, [todo({ id: "doomed" })]);
+
+    await repo.importSnapshot(emptySnapshot());
+
+    expect(await repo.listTodos()).toEqual([]);
+    expect(await repo.listCategories()).toEqual([]);
+  });
+
+  test("importSnapshot rejects a newer schema version and preserves existing data", async () => {
+    const repo = makeRepo();
+    const existing = todo({ id: "keep", categoryId: "work" });
+    const existingCategory = category({ id: "work", name: "Work" });
+    await repo.putTodo(existing);
+    await repo.putCategory(existingCategory);
+
+    const future: StoreSnapshot = {
+      version: SCHEMA_VERSION + 1,
+      todos: [todo({ id: "intruder" })],
+      categories: [category({ id: "intruder-cat" })],
+    };
+
+    await expect(repo.importSnapshot(future)).rejects.toBeInstanceOf(StoreVersionError);
+
+    expect(await repo.getTodo("keep")).toEqual(existing);
+    expect(await repo.getTodo("intruder")).toBeUndefined();
+    expect(ids(await repo.listCategories())).toEqual(["work"]);
+  });
+});
+
+describe("on-disk failure modes", () => {
+  // The implementation may surface these errors either at construction or on first
+  // access; assert against whichever path throws/rejects.
+  async function expectStoreError(
+    path: string,
+    error: typeof StoreCorruptError | typeof StoreVersionError,
+  ): Promise<void> {
+    let repo: TodoRepository | undefined;
+    try {
+      repo = createSqliteRepository({ path });
+    } catch (caught) {
+      expect(caught).toBeInstanceOf(error);
+      return;
+    }
+    openRepos.push(repo);
+    await expect(repo.listTodos()).rejects.toBeInstanceOf(error);
+  }
+
+  test("a non-SQLite file raises StoreCorruptError", async () => {
+    const path = await tempPath("corrupt.sqlite");
+    await writeFile(path, "not a database");
+
+    await expectStoreError(path, StoreCorruptError);
+  });
+
+  test("an unsupported schema version raises StoreVersionError", async () => {
+    const path = await tempPath("versioned.sqlite");
+    // Reuse the implementation's own bootstrap to create a valid schema, then bump
+    // user_version past what this build supports.
+    const bootstrap = createSqliteRepository({ path });
+    bootstrap.close();
+
+    const raw = new Database(path);
+    raw.run(`PRAGMA user_version = ${SCHEMA_VERSION + 998}`);
+    raw.close();
+
+    await expectStoreError(path, StoreVersionError);
+  });
+});

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
-import { buildApplication, run } from "@stricli/core";
-import { rootRoute } from "./commands";
+import { run } from "@stricli/core";
+import { createApp } from "./app";
+import { createAppContext } from "./context";
 import { startRepl } from "./repl";
 
 const args = Bun.argv.slice(2);
@@ -8,12 +9,8 @@ const args = Bun.argv.slice(2);
 if (args.length === 0) {
   await startRepl();
 } else {
-  const app = buildApplication(rootRoute, {
-    name: "todorepl",
-    versionInfo: { currentVersion: "0.1.0" },
-    scanner: { caseStyle: "allow-kebab-for-camel" },
-    documentation: { caseStyle: "convert-camel-to-kebab" },
-  });
-
-  await run(app, args, { process: process as never });
+  const context = createAppContext();
+  await run(createApp(), args, context);
+  const code = context.process.exitCode;
+  if (typeof code === "number" && code !== 0) process.exitCode = code < 0 ? 1 : code;
 }

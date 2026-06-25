@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { resolve } from "node:path";
 import { resolveTodoDataPath } from "./data-path";
 
 describe("resolveTodoDataPath", () => {
@@ -9,7 +10,7 @@ describe("resolveTodoDataPath", () => {
         homeDir: "/Users/alex",
         platform: "darwin",
       }),
-    ).toBe("/Users/alex/Library/Application Support/todorepl/todos.json");
+    ).toBe("/Users/alex/Library/Application Support/todorepl/todos.db");
   });
 
   test("uses XDG_DATA_HOME on Linux-like platforms", () => {
@@ -19,7 +20,7 @@ describe("resolveTodoDataPath", () => {
         homeDir: "/home/alex",
         platform: "linux",
       }),
-    ).toBe("/tmp/data/todorepl/todos.json");
+    ).toBe("/tmp/data/todorepl/todos.db");
   });
 
   test("uses LOCALAPPDATA on Windows", () => {
@@ -29,7 +30,7 @@ describe("resolveTodoDataPath", () => {
         homeDir: "C:\\Users\\alex",
         platform: "win32",
       }),
-    ).toBe("C:\\Users\\alex\\AppData\\Local\\todorepl\\todos.json");
+    ).toBe("C:\\Users\\alex\\AppData\\Local\\todorepl\\todos.db");
   });
 
   test("treats an empty XDG_DATA_HOME as unset and falls back to ~/.local/share", () => {
@@ -39,7 +40,7 @@ describe("resolveTodoDataPath", () => {
         homeDir: "/home/alex",
         platform: "linux",
       }),
-    ).toBe("/home/alex/.local/share/todorepl/todos.json");
+    ).toBe("/home/alex/.local/share/todorepl/todos.db");
   });
 
   test("treats an empty LOCALAPPDATA as unset and falls back to AppData\\Local", () => {
@@ -49,10 +50,10 @@ describe("resolveTodoDataPath", () => {
         homeDir: "C:\\Users\\alex",
         platform: "win32",
       }),
-    ).toBe("C:\\Users\\alex\\AppData\\Local\\todorepl\\todos.json");
+    ).toBe("C:\\Users\\alex\\AppData\\Local\\todorepl\\todos.db");
   });
 
   test("resolves explicit data path overrides", () => {
-    expect(resolveTodoDataPath("relative/todos.json")).toBe(`${process.cwd()}/relative/todos.json`);
+    expect(resolveTodoDataPath("relative/todos.db")).toBe(resolve("relative/todos.db"));
   });
 });

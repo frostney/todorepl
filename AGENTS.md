@@ -28,6 +28,7 @@ bunx tsc --noEmit
 ## Code Organization
 
 - `src/cli/` owns Stricli command routing, terminal output, and the REPL shell entrypoint.
+- `src/app/` owns application services (todo/category) shared by command mode and the REPL.
 - `src/domain/` owns todo, category, date, and time domain types and validation.
 - `src/storage/` owns local persistence contracts and implementations.
 - `docs/` owns architecture, tooling, and implementation planning.
