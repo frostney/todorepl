@@ -5,5 +5,4 @@
 - [Tooling](tooling.md)
 - [Code style](code-style.md)
 - [Deployment](deployment.md)
-- [Implementation plan](implementation-plan.md)
 - [ADRs](adr/README.md)

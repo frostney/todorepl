@@ -5,7 +5,7 @@
 - Keep TypeScript strict and intention-revealing.
 - Keep CLI, domain, storage, and scripts in separate ownership folders.
 - Co-locate unit tests beside the public module they exercise.
-- Prefer shared domain/application functions over duplicated REPL and command behavior.
+- Prefer shared domain/application functions over duplicated agent and command behavior.
 
 ## TypeScript
 
@@ -14,7 +14,7 @@ shape for the same reason.
 
 ## File Layout
 
-- `src/cli/` owns command routing, terminal output, and REPL shell behavior.
+- `src/cli/` owns command routing, terminal output, and the interactive agent entrypoint (`agent-repl.ts`).
 - `src/domain/` owns todo/category types and validation.
 - `src/storage/` owns persistence contracts and implementations.
 - `scripts/` owns project checks and one-off automation.

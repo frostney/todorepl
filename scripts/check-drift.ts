@@ -20,7 +20,6 @@ for (const doc of [
   "docs/tooling.md",
   "docs/code-style.md",
   "docs/deployment.md",
-  "docs/implementation-plan.md",
 ]) {
   expectFile(doc);
   expectExecutiveSummary(doc);

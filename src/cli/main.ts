@@ -1,13 +1,13 @@
 #!/usr/bin/env bun
 import { run } from "@stricli/core";
+import { startAgentRepl } from "./agent-repl";
 import { createApp } from "./app";
 import { createAppContext } from "./context";
-import { startRepl } from "./repl";
 
 const args = Bun.argv.slice(2);
 
 if (args.length === 0) {
-  await startRepl();
+  await startAgentRepl();
 } else {
   const context = createAppContext();
   await run(createApp(), args, context);
