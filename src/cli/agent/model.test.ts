@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type ModelEnv, resolveModel } from "./model";
+import { type ModelEnv, redactUrl, resolveModel } from "./model";
 
 describe("resolveModel", () => {
   test("defaults to a local Ollama-compatible server with no configuration", () => {
@@ -18,6 +18,27 @@ describe("resolveModel", () => {
 
   test("honours a custom local model id", () => {
     expect(resolveModel({ TODOREPL_MODEL: "qwen2.5" }).modelId).toBe("qwen2.5");
+  });
+
+  test("treats empty local env vars as unset and falls back to defaults", () => {
+    const resolved = resolveModel({
+      TODOREPL_PROVIDER: "",
+      TODOREPL_MODEL: "",
+      TODOREPL_BASE_URL: "",
+    });
+    expect(resolved.placement).toBe("on-device");
+    expect(resolved.modelId).toBe("llama3.1");
+    expect(resolved.baseURL).toBe("http://localhost:11434/v1");
+  });
+
+  test("never leaks base-URL credentials into the provider label", () => {
+    const resolved = resolveModel({
+      TODOREPL_PROVIDER: "openai-compatible",
+      TODOREPL_BASE_URL: "https://user:secret@example.com/v1",
+      TODOREPL_API_KEY: "k",
+    });
+    expect(resolved.providerLabel).not.toContain("secret");
+    expect(resolved.providerLabel).not.toContain("user:");
   });
 
   test("preflights the Ollama preset but not a generic OpenAI-compatible server", () => {
@@ -122,5 +143,19 @@ describe("resolveModel", () => {
 
   test("rejects an unknown provider", () => {
     expect(() => resolveModel({ TODOREPL_PROVIDER: "bogus" })).toThrow("Unknown TODOREPL_PROVIDER");
+  });
+});
+
+describe("redactUrl", () => {
+  test("strips credentials, query, and fragment, keeping origin + path", () => {
+    expect(redactUrl("https://user:token@host:8443/v1?sig=abc#frag")).toBe("https://host:8443/v1");
+  });
+
+  test("keeps a normal local URL intact", () => {
+    expect(redactUrl("http://localhost:11434/v1")).toBe("http://localhost:11434/v1");
+  });
+
+  test("falls back to a generic label for an unparseable URL", () => {
+    expect(redactUrl("not a url")).toBe("the configured server URL");
   });
 });

@@ -23,6 +23,7 @@ const attributeObject = z.object({
     .int()
     .min(0)
     .max(1439)
+    .multipleOf(15)
     .optional()
     .describe("Scheduled time as minute of day, a multiple of 15 (9:00 AM = 540, 2:30 PM = 870)."),
   duration: z
@@ -50,6 +51,11 @@ async function attributeFields(
   return fields;
 }
 
+// Calendar-date contract shared by the date-bearing tools. The service still runs
+// full calendar validation (e.g. rejecting 2026-02-30); this gives the model an
+// earlier, schema-level signal for the expected format.
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format.");
+
 const idInput = z.object({ id: z.string().describe("Todo id or unique prefix.") });
 
 // Builds the tool surface the agent uses to read and modify todos and categories.
@@ -63,9 +69,9 @@ export function createAgentTools(services: Services): ToolSet {
       description:
         "List todos, optionally filtered by date range, status, scheduling, or category.",
       inputSchema: z.object({
-        date: z.string().optional().describe("Exact date, YYYY-MM-DD."),
-        from: z.string().optional().describe("Start date inclusive, YYYY-MM-DD."),
-        to: z.string().optional().describe("End date inclusive, YYYY-MM-DD."),
+        date: isoDate.optional().describe("Exact date, YYYY-MM-DD."),
+        from: isoDate.optional().describe("Start date inclusive, YYYY-MM-DD."),
+        to: isoDate.optional().describe("End date inclusive, YYYY-MM-DD."),
         status: z.enum(["open", "done"]).optional(),
         category: z.string().optional().describe("Category name or id."),
         scheduled: z
@@ -87,7 +93,7 @@ export function createAgentTools(services: Services): ToolSet {
       description: "Create a todo. Defaults to today's date when none is given.",
       inputSchema: z.object({
         name: z.string().describe("What the todo is."),
-        date: z.string().optional().describe("Due date, YYYY-MM-DD. Defaults to today."),
+        date: isoDate.optional().describe("Due date, YYYY-MM-DD. Defaults to today."),
         ...attributeObject.shape,
       }),
       needsApproval: true,
@@ -129,7 +135,7 @@ export function createAgentTools(services: Services): ToolSet {
       description: "Move a todo to a different date.",
       inputSchema: z.object({
         id: z.string().describe("Todo id or unique prefix."),
-        date: z.string().describe("Target date, YYYY-MM-DD."),
+        date: isoDate.describe("Target date, YYYY-MM-DD."),
       }),
       needsApproval: true,
       execute: ({ id, date }) => attempt(() => todos.move(id, { date })),

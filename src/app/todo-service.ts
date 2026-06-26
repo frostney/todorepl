@@ -79,11 +79,13 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
   return {
     async add(input) {
       const name = requireName(input.name, "Todo");
+      // Sample the clock once so the default date and the timestamps agree, even
+      // if the call straddles a local-midnight boundary.
+      const timestamp = clock();
       const date =
         input.date !== undefined
           ? asValidationError(() => parseDateString(input.date as string))
-          : today(clock);
-      const timestamp = clock();
+          : today(timestamp);
       const todo: Todo = {
         id: crypto.randomUUID(),
         name,

@@ -12,6 +12,14 @@ function resolved(placement: Placement): ResolvedModel {
   };
 }
 
+// Both remote placements make the same two-part promise: storage stays local (and
+// is never uploaded), shown on a separate line from what gets transmitted.
+function expectKeepsStorageLocal(text: string): void {
+  expect(text).toContain("\n");
+  expect(text).toMatch(/stay on this machine/i);
+  expect(text).toMatch(/never uploads|never upload/i);
+}
+
 describe("privacyNotice", () => {
   test("on-device: everything stays on the machine", () => {
     const text = privacyNotice(resolved("on-device"));
@@ -21,10 +29,7 @@ describe("privacyNotice", () => {
 
   test("self-hosted: storage stays local; conversation goes to your own server", () => {
     const text = privacyNotice(resolved("self-hosted"));
-    // Two distinct points: storage guarantee, then what is transmitted.
-    expect(text).toContain("\n");
-    expect(text).toMatch(/stay on this machine/i);
-    expect(text).toMatch(/never uploads|never upload/i);
+    expectKeepsStorageLocal(text);
     expect(text).toMatch(/server you configured/i);
     // A self-hosted box is the user's own server, not a third-party provider.
     expect(text).not.toMatch(/provider/i);
@@ -32,10 +37,7 @@ describe("privacyNotice", () => {
 
   test("cloud: keeps storage and inference as separate points", () => {
     const text = privacyNotice(resolved("cloud"));
-    expect(text).toContain("\n");
-    // Storage point — the database stays local and is not uploaded.
-    expect(text).toMatch(/stay on this machine/i);
-    expect(text).toMatch(/never uploads|never upload/i);
+    expectKeepsStorageLocal(text);
     // Inference point — only the conversation is sent to the provider.
     expect(text).toMatch(/sent to the provider/i);
     // Must not imply the todos themselves are stored off-device.

@@ -3,7 +3,7 @@ import { type Clock, today } from "../../app/clock";
 // Builds the agent's system instructions, anchored to the current local date so it
 // can resolve relative dates like "tomorrow" correctly.
 export function buildInstructions(clock: Clock): string {
-  const todayDate = today(clock);
+  const todayDate = today(clock());
   return [
     "You are todorepl, a friendly assistant that manages the user's local todo list from the terminal.",
     `Today is ${todayDate} in the user's local time; resolve relative dates such as "tomorrow" against it.`,

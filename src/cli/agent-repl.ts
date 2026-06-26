@@ -4,7 +4,7 @@ import { ToolLoopAgent } from "ai";
 import { createCategoryService } from "../app/category-service";
 import { createTodoService } from "../app/todo-service";
 import { buildInstructions } from "./agent/instructions";
-import { type ResolvedModel, resolveModel } from "./agent/model";
+import { type ResolvedModel, redactUrl, resolveModel } from "./agent/model";
 import { privacyNotice } from "./agent/privacy";
 import { createAgentTools } from "./agent/tools";
 import { type AppContext, createAppContext } from "./context";
@@ -29,7 +29,7 @@ async function modelServerReachable(url: string): Promise<boolean> {
 
 function reportUnreachable(baseURL: string): void {
   stderr.write(
-    `Could not reach a local model server at ${baseURL}.\n` +
+    `Could not reach a local model server at ${redactUrl(baseURL)}.\n` +
       "Start Ollama with `ollama serve` and pull a model (e.g. `ollama pull llama3.1`),\n" +
       "or set TODOREPL_PROVIDER=anthropic|openai|gateway with an API key to use a hosted model.\n",
   );

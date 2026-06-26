@@ -39,6 +39,18 @@ function placementFor(baseURL: string): Placement {
   }
 }
 
+// Strips credentials and query/fragment from a URL for safe display in banners and
+// logs, keeping only origin + path. A raw TODOREPL_BASE_URL may embed userinfo
+// (https://user:token@host) or a signed query, which must never be printed.
+export function redactUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return "the configured server URL";
+  }
+}
+
 function firstKey(env: ModelEnv, names: readonly string[]): string | undefined {
   for (const name of names) {
     const value = env[name];
@@ -98,7 +110,7 @@ function resolveGateway(env: ModelEnv): ResolvedModel {
         "or run where a Vercel OIDC token (VERCEL_OIDC_TOKEN) is available.",
     );
   }
-  const baseURL = env.TODOREPL_BASE_URL;
+  const baseURL = firstKey(env, ["TODOREPL_BASE_URL"]);
   const gateway = createGateway({
     ...(apiKey !== undefined ? { apiKey } : {}),
     ...(baseURL !== undefined ? { baseURL } : {}),
@@ -120,19 +132,19 @@ function resolveGateway(env: ModelEnv): ResolvedModel {
 // conversation (messages plus the todos the agent reads) to a third party for
 // inference — never the database.
 export function resolveModel(env: ModelEnv): ResolvedModel {
-  const provider = env.TODOREPL_PROVIDER ?? "ollama";
+  const provider = firstKey(env, ["TODOREPL_PROVIDER"]) ?? "ollama";
 
   switch (provider) {
     case "ollama":
     case "openai-compatible": {
-      const baseURL = env.TODOREPL_BASE_URL ?? DEFAULT_BASE_URL;
-      const modelId = env.TODOREPL_MODEL ?? DEFAULT_LOCAL_MODEL;
+      const baseURL = firstKey(env, ["TODOREPL_BASE_URL"]) ?? DEFAULT_BASE_URL;
+      const modelId = firstKey(env, ["TODOREPL_MODEL"]) ?? DEFAULT_LOCAL_MODEL;
       // Ollama ignores the key; other compatible servers may require one.
       const apiKey = firstKey(env, ["TODOREPL_API_KEY"]) ?? "todorepl";
       const compatible = createOpenAICompatible({ name: provider, baseURL, apiKey });
       return {
         model: compatible(modelId),
-        providerLabel: `${provider} @ ${baseURL}`,
+        providerLabel: `${provider} @ ${redactUrl(baseURL)}`,
         modelId,
         placement: placementFor(baseURL),
         preflight: provider === "ollama",

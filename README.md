@@ -33,12 +33,15 @@ automatically; changes ask for your confirmation before they are applied.
 
 Your todo database always stays on this machine — todorepl never uploads or syncs it, whatever model
 you pick. By default the agent runs a local [Ollama](https://ollama.com)-compatible model, so nothing
-leaves your machine at all. Point it at any model with `TODOREPL_PROVIDER`, `TODOREPL_MODEL`,
-`TODOREPL_BASE_URL`, and `TODOREPL_API_KEY` (see [`.env.example`](.env.example)). Choosing a cloud
-provider — `anthropic`, `openai`, or `gateway` (the [Vercel AI
-Gateway](https://vercel.com/docs/ai-gateway), one key for many providers) — does not change where your
-todos are stored; it means your messages and the todo details the agent reads are sent to that
-provider to generate replies.
+leaves your machine at all. Set `TODOREPL_PROVIDER` to `ollama` (default), `openai-compatible`,
+`anthropic`, `openai`, or `gateway` (the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway), one
+key for many providers), plus `TODOREPL_MODEL`, `TODOREPL_BASE_URL`, and an API key —
+`TODOREPL_API_KEY`, or a provider-standard key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or
+`AI_GATEWAY_API_KEY` / a Vercel OIDC token for the gateway). See [`.env.example`](.env.example) for
+each provider's settings. `openai-compatible` targets any OpenAI-compatible server (local or
+self-hosted); `anthropic`, `openai`, and `gateway` are hosted clouds. Choosing a hosted provider does
+not change where your todos are stored — it means your messages and the todo details the agent reads
+are sent to that provider to generate replies.
 
 Run one command (scriptable, no model required):
 
