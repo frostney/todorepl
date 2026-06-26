@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import type { Category, Todo } from "./model";
-import { parseDateString, parseMinuteOfDay, parseTodoDuration } from "./validation";
+import {
+  formatLocalDate,
+  parseDateString,
+  parseMinuteOfDay,
+  parseTodoDuration,
+} from "./validation";
 
 describe("parseDateString", () => {
   test("accepts a valid calendar date", () => {
@@ -9,6 +14,18 @@ describe("parseDateString", () => {
 
   test("rejects impossible calendar dates", () => {
     expect(() => parseDateString("2026-02-30")).toThrow("valid calendar date");
+  });
+});
+
+describe("formatLocalDate", () => {
+  test("formats local date parts as YYYY-MM-DD", () => {
+    // Constructed from local parts (month is 0-indexed), so the result is
+    // independent of the machine's time zone.
+    expect(formatLocalDate(new Date(2026, 5, 24, 23, 30))).toBe("2026-06-24");
+  });
+
+  test("zero-pads single-digit months and days", () => {
+    expect(formatLocalDate(new Date(2026, 0, 5))).toBe("2026-01-05");
   });
 });
 

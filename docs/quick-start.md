@@ -4,7 +4,7 @@
 
 - Install dependencies with `bun install`.
 - Run the CLI with `bun run todorepl -- --help`.
-- Start REPL mode with `bun run todorepl`.
+- Start the interactive AI agent with `bun run todorepl` (needs a local model by default).
 - Run the full local gate with `bun run check`.
 
 ## Install
@@ -21,26 +21,34 @@ Print command help:
 bun run todorepl -- --help
 ```
 
-Start the interactive shell:
+Start the interactive AI agent:
 
 ```sh
 bun run todorepl
 ```
 
-The shell prints a `todo>` prompt and accepts the same commands as command mode, one per line:
+The agent accepts natural language and calls the same todo and category operations as command mode:
 
 ```text
-todo> add "Buy milk" --date 2026-06-24
-todo> list
-todo> done <id>
-todo> category list
+> add buy milk for tomorrow
+> what's open this week?
+> mark the milk one done
+> make a "Work" category and move standup into it
 ```
 
-Arguments are tokenized the way a shell tokenizes them, so wrap any value that contains spaces in
-quotes (for example `add "Buy milk"`). Type `help` for command help, and `exit` or `quit` to leave
-the shell. A bad command (unknown or invalid input) prints an error but keeps the session open.
+Read operations run automatically; mutations (add, edit, complete, move, delete) ask you to confirm
+before they apply. By default the agent expects a local
+[Ollama](https://ollama.com)-compatible server at `http://localhost:11434/v1`. Configure the model
+with `TODOREPL_PROVIDER`, `TODOREPL_MODEL`, `TODOREPL_BASE_URL`, and `TODOREPL_API_KEY` (see
+[`.env.example`](../.env.example)). If no local server is reachable, the agent prints setup guidance
+and exits non-zero.
 
-Run one command:
+Your todo database always stays on this machine; todorepl never uploads it. The default local model
+keeps everything on-device. A cloud provider (`anthropic`, `openai`, `gateway`) does not move where
+your todos live — it only sends your messages and the todos the agent reads to that provider to
+generate replies.
+
+Run one command (no model required):
 
 ```sh
 bun run todorepl -- list

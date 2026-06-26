@@ -2,10 +2,9 @@ import { buildCommand } from "@stricli/core";
 import { ValidationError } from "../../app/errors";
 import type { AddTodoInput, EditTodoInput } from "../../app/todo-service";
 import type { Todo } from "../../domain/model";
-import type { TodoFilter } from "../../storage/repository";
 import type { AppContext } from "../context";
 import { formatJson, formatTable } from "../output";
-import { type CommonFlags, commonFlags, withServices } from "./shared";
+import { buildTodoFilter, type CommonFlags, commonFlags, withServices } from "./shared";
 
 const attributeFlags = {
   time: {
@@ -144,17 +143,20 @@ export const list = buildCommand<ListFlags, [], AppContext>({
     },
   },
   async func(flags) {
-    const filter: TodoFilter = {};
-    if (flags.date !== undefined) filter.date = flags.date;
-    if (flags.from !== undefined) filter.dateFrom = flags.from;
-    if (flags.to !== undefined) filter.dateTo = flags.to;
-    if (flags.status !== undefined) filter.status = flags.status;
     const scheduled = resolveScheduledFilter(flags.scheduled, flags.unscheduled);
-    if (scheduled !== undefined) filter.scheduled = scheduled;
-    if (flags.includeDeleted) filter.includeDeleted = true;
     const todos = await withServices(this, flags.data, async ({ todos, categories }) => {
-      if (flags.category !== undefined)
-        filter.categoryId = await categories.resolveId(flags.category);
+      const filter = await buildTodoFilter(
+        {
+          date: flags.date,
+          from: flags.from,
+          to: flags.to,
+          status: flags.status,
+          scheduled,
+          includeDeleted: flags.includeDeleted,
+          category: flags.category,
+        },
+        categories,
+      );
       return todos.list(filter);
     });
     this.process.stdout.write(renderTodos(todos, flags.json));

@@ -23,6 +23,15 @@ export function parseDateString(value: string): DateString {
   return value;
 }
 
+// Formats a Date as a local-time YYYY-MM-DD string (not UTC), so "today" matches
+// the calendar day the user is actually on.
+export function formatLocalDate(at: Date): DateString {
+  const year = at.getFullYear();
+  const month = String(at.getMonth() + 1).padStart(2, "0");
+  const day = String(at.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function parseMinuteOfDay(value: string): MinuteOfDay {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 0 || parsed >= MINUTES_PER_DAY) {

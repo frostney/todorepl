@@ -1,7 +1,7 @@
 import type { Todo } from "../domain/model";
 import { parseDateString, parseMinuteOfDay, parseTodoDuration } from "../domain/validation";
 import type { TodoFilter, TodoRepository } from "../storage/repository";
-import { type Clock, systemClock } from "./clock";
+import { type Clock, systemClock, today } from "./clock";
 import { asValidationError, requireName, resolveByIdentifier } from "./service-support";
 
 export type AddTodoInput = {
@@ -52,14 +52,6 @@ function applyOptionalFields(target: Partial<OptionalTodoFields>, input: EditTod
   }
 }
 
-function localDateOf(iso: string): string {
-  const at = new Date(iso);
-  const year = at.getFullYear();
-  const month = String(at.getMonth() + 1).padStart(2, "0");
-  const day = String(at.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 export function createTodoService(repo: TodoRepository, clock: Clock = systemClock): TodoService {
   async function nextOrder(date: string): Promise<number> {
     const existing = await repo.listTodos({ date, includeDeleted: true });
@@ -87,11 +79,13 @@ export function createTodoService(repo: TodoRepository, clock: Clock = systemClo
   return {
     async add(input) {
       const name = requireName(input.name, "Todo");
+      // Sample the clock once so the default date and the timestamps agree, even
+      // if the call straddles a local-midnight boundary.
+      const timestamp = clock();
       const date =
         input.date !== undefined
           ? asValidationError(() => parseDateString(input.date as string))
-          : localDateOf(clock());
-      const timestamp = clock();
+          : today(timestamp);
       const todo: Todo = {
         id: crypto.randomUUID(),
         name,

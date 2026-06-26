@@ -1,7 +1,7 @@
 # todorepl
 
-A local-first command-line todo app with REPL and subcommand modes for human and agent workflows.
-See [docs](docs/README.md) for architecture, setup, and project guidance.
+A local-first command-line todo app with an AI agent shell and scriptable subcommands for human and
+agent workflows. See [docs](docs/README.md) for architecture, setup, and project guidance.
 
 ## Install
 
@@ -21,13 +21,29 @@ bun install /path/to/todorepl
 
 ## Usage
 
-Start the interactive shell:
+Start the interactive AI agent (no arguments):
 
 ```sh
 bun run todorepl
 ```
 
-Run one command:
+The agent understands natural language ("add buy milk tomorrow", "what's on my list for
+Friday?") and calls the same todo and category operations the subcommands expose. Reads run
+automatically; changes ask for your confirmation before they are applied.
+
+Your todo database always stays on this machine — todorepl never uploads or syncs it, whatever model
+you pick. By default the agent runs a local [Ollama](https://ollama.com)-compatible model, so nothing
+leaves your machine at all. Set `TODOREPL_PROVIDER` to `ollama` (default), `openai-compatible`,
+`anthropic`, `openai`, or `gateway` (the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway), one
+key for many providers), plus `TODOREPL_MODEL`, `TODOREPL_BASE_URL`, and an API key —
+`TODOREPL_API_KEY`, or a provider-standard key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or
+`AI_GATEWAY_API_KEY` / a Vercel OIDC token for the gateway). See [`.env.example`](.env.example) for
+each provider's settings. `openai-compatible` targets any OpenAI-compatible server (local or
+self-hosted); `anthropic`, `openai`, and `gateway` are hosted clouds. Choosing a hosted provider does
+not change where your todos are stored — it means your messages and the todo details the agent reads
+are sent to that provider to generate replies.
+
+Run one command (scriptable, no model required):
 
 ```sh
 bun run todorepl -- list
