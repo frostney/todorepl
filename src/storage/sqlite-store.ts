@@ -174,6 +174,16 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
 
   const todoUpsert = db.query(TODO_UPSERT);
   const categoryUpsert = db.query(CATEGORY_UPSERT);
+  const unassignTodosByCategory = db.query(
+    "UPDATE todos SET category_id = NULL, updated_at = ? WHERE category_id = ?",
+  );
+  const deleteCategory = db.query("DELETE FROM categories WHERE id = ?");
+  const deleteCategoryAndUnassignTodosTransaction = db.transaction(
+    (id: CategoryId, updatedAt: string): void => {
+      unassignTodosByCategory.run(updatedAt, id);
+      deleteCategory.run(id);
+    },
+  );
 
   return {
     async listTodos(filter?: TodoFilter): Promise<Todo[]> {
@@ -207,8 +217,8 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
       categoryUpsert.run(...categoryParams(category));
     },
 
-    async deleteCategory(id: CategoryId): Promise<void> {
-      db.query("DELETE FROM categories WHERE id = ?").run(id);
+    async deleteCategoryAndUnassignTodos(id: CategoryId, updatedAt: string): Promise<void> {
+      deleteCategoryAndUnassignTodosTransaction(id, updatedAt);
     },
 
     async exportSnapshot(): Promise<StoreSnapshot> {

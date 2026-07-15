@@ -1,4 +1,4 @@
-import type { Category, CategoryId, Todo } from "../domain/model";
+import type { Category, CategoryId } from "../domain/model";
 import type { TodoRepository } from "../storage/repository";
 import { type Clock, systemClock } from "./clock";
 import { ValidationError } from "./errors";
@@ -40,16 +40,8 @@ export function createCategoryService(
     );
   }
 
-  // Hard delete plus un-assignment is performed as a sequence of writes, not a
-  // single transaction; a crash mid-loop can leave todos un-assigned before the
-  // category itself is removed.
-  async function unassignAndDelete(category: Category, used: Todo[]): Promise<Category> {
-    const timestamp = clock();
-    for (const todo of used) {
-      const { categoryId: _categoryId, ...rest } = todo;
-      await repo.putTodo({ ...rest, updatedAt: timestamp });
-    }
-    await repo.deleteCategory(category.id);
+  async function unassignAndDelete(category: Category): Promise<Category> {
+    await repo.deleteCategoryAndUnassignTodos(category.id, clock());
     return category;
   }
 
@@ -113,7 +105,7 @@ export function createCategoryService(
             "pass --force to delete and un-assign them",
         );
       }
-      return unassignAndDelete(category, used);
+      return unassignAndDelete(category);
     },
   };
 }

@@ -37,8 +37,12 @@ const TODO_BASE: Todo = {
 };
 
 // Adds a todo referencing the given category, returning its id for later lookup.
-async function seedTodoFor(repo: TodoRepository, categoryId: string): Promise<string> {
-  const todo: Todo = { ...TODO_BASE, id: "todo-in-use", categoryId };
+async function seedTodoFor(
+  repo: TodoRepository,
+  categoryId: string,
+  id: string = "todo-in-use",
+): Promise<string> {
+  const todo: Todo = { ...TODO_BASE, id, categoryId };
   await repo.putTodo(todo);
   return todo.id;
 }
@@ -190,14 +194,16 @@ describe("remove", () => {
     expect((await repo.getTodo(todoId))?.categoryId).toBe(created.id);
   });
 
-  test("removes a category in use with force and un-assigns its todo", async () => {
+  test("removes a category in use with force and un-assigns all of its todos", async () => {
     const { service, repo } = makeService();
     const created = await service.create(category({ name: "Work" }));
-    const todoId = await seedTodoFor(repo, created.id);
+    const firstTodoId = await seedTodoFor(repo, created.id, "todo-one");
+    const secondTodoId = await seedTodoFor(repo, created.id, "todo-two");
 
     await service.remove(created.id, { force: true });
 
     await expect(service.get(created.id)).rejects.toBeInstanceOf(NotFoundError);
-    expect((await repo.getTodo(todoId))?.categoryId).toBeUndefined();
+    expect((await repo.getTodo(firstTodoId))?.categoryId).toBeUndefined();
+    expect((await repo.getTodo(secondTodoId))?.categoryId).toBeUndefined();
   });
 });
