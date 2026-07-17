@@ -40,11 +40,6 @@ export function createCategoryService(
     );
   }
 
-  async function unassignAndDelete(category: Category): Promise<Category> {
-    await repo.deleteCategoryAndUnassignTodos(category.id, clock());
-    return category;
-  }
-
   return {
     async create(input) {
       const name = requireName(input.name, "Category");
@@ -98,14 +93,17 @@ export function createCategoryService(
 
     async remove(idOrName, options) {
       const category = await resolve(idOrName);
-      const used = await repo.listTodos({ categoryId: category.id, includeDeleted: true });
-      if (used.length > 0 && options?.force !== true) {
+      const result = await repo.deleteCategory(category.id, {
+        force: options?.force === true,
+        updatedAt: clock(),
+      });
+      if (!result.deleted) {
         throw new ValidationError(
-          `Category "${category.name}" is used by ${used.length} todo(s); ` +
+          `Category "${category.name}" is used by ${result.referencedTodoCount} todo(s); ` +
             "pass --force to delete and un-assign them",
         );
       }
-      return unassignAndDelete(category);
+      return category;
     },
   };
 }

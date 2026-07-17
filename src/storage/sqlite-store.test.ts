@@ -287,7 +287,10 @@ describe("atomic category deletion", () => {
       todo({ id: "home-open", categoryId: home.id }),
     ]);
 
-    await repo.deleteCategoryAndUnassignTodos(work.id, "2026-06-24T12:00:00.000Z");
+    await repo.deleteCategory(work.id, {
+      force: true,
+      updatedAt: "2026-06-24T12:00:00.000Z",
+    });
 
     expect(await repo.getCategory(work.id)).toBeUndefined();
     expect(await repo.getCategory(home.id)).toEqual(home);
@@ -300,6 +303,23 @@ describe("atomic category deletion", () => {
       categoryId: home.id,
       updatedAt: TODO_BASE.updatedAt,
     });
+  });
+
+  test("refuses a referenced category without force and changes nothing", async () => {
+    const repo = makeRepo();
+    const work = category({ id: "work", name: "Work" });
+    const assigned = todo({ id: "assigned", categoryId: work.id });
+    await repo.putCategory(work);
+    await repo.putTodo(assigned);
+
+    const result = await repo.deleteCategory(work.id, {
+      force: false,
+      updatedAt: "2026-06-24T12:00:00.000Z",
+    });
+
+    expect(result).toEqual({ deleted: false, referencedTodoCount: 1 });
+    expect(await repo.getCategory(work.id)).toEqual(work);
+    expect(await repo.getTodo(assigned.id)).toEqual(assigned);
   });
 
   test("rolls back todo updates when deleting the category fails", async () => {
@@ -319,7 +339,10 @@ describe("atomic category deletion", () => {
     raw.close();
 
     await expect(
-      repo.deleteCategoryAndUnassignTodos(work.id, "2026-06-24T12:00:00.000Z"),
+      repo.deleteCategory(work.id, {
+        force: true,
+        updatedAt: "2026-06-24T12:00:00.000Z",
+      }),
     ).rejects.toThrow("simulated category delete failure");
 
     expect(await repo.getCategory(work.id)).toEqual(work);

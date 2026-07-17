@@ -194,6 +194,21 @@ describe("remove", () => {
     expect((await repo.getTodo(todoId))?.categoryId).toBe(created.id);
   });
 
+  test("rejects a reference added immediately before the repository delete", async () => {
+    const { service, repo } = makeService();
+    const created = await service.create(category({ name: "Work" }));
+    const deleteCategory = repo.deleteCategory.bind(repo);
+    repo.deleteCategory = async (id, options) => {
+      await seedTodoFor(repo, id, "concurrent-reference");
+      return deleteCategory(id, options);
+    };
+
+    await expect(service.remove(created.id)).rejects.toBeInstanceOf(ValidationError);
+
+    expect((await service.get(created.id)).id).toBe(created.id);
+    expect((await repo.getTodo("concurrent-reference"))?.categoryId).toBe(created.id);
+  });
+
   test("removes a category in use with force and un-assigns all of its todos", async () => {
     const { service, repo } = makeService();
     const created = await service.create(category({ name: "Work" }));
