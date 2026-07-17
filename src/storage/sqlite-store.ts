@@ -192,8 +192,8 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
       if (options.force) {
         unassignTodosByCategory.run(options.updatedAt, id);
       }
-      deleteCategoryRow.run(id);
-      return { deleted: true, referencedTodoCount };
+      const deleteResult = deleteCategoryRow.run(id);
+      return { deleted: deleteResult.changes > 0, referencedTodoCount };
     },
   );
 

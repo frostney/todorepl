@@ -275,6 +275,17 @@ describe("soft delete visibility", () => {
 });
 
 describe("atomic category deletion", () => {
+  test("reports that a missing category was not deleted", async () => {
+    const repo = makeRepo();
+
+    const result = await repo.deleteCategory("missing", {
+      force: false,
+      updatedAt: "2026-06-24T12:00:00.000Z",
+    });
+
+    expect(result).toEqual({ deleted: false, referencedTodoCount: 0 });
+  });
+
   test("un-assigns every referencing todo and deletes the category", async () => {
     const repo = makeRepo();
     const work = category({ id: "work", name: "Work" });
