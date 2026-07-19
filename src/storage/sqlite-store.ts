@@ -4,6 +4,8 @@ import { dirname } from "node:path";
 import type { Category, CategoryId, Todo, TodoId } from "../domain/model";
 import { resolveTodoDataPath } from "./data-path";
 import {
+  type DeleteCategoryOptions,
+  type DeleteCategoryResult,
   type RepositoryOptions,
   SCHEMA_VERSION,
   StoreCorruptError,
@@ -174,6 +176,26 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
 
   const todoUpsert = db.query(TODO_UPSERT);
   const categoryUpsert = db.query(CATEGORY_UPSERT);
+  const unassignTodosByCategory = db.query(
+    "UPDATE todos SET category_id = NULL, updated_at = ? WHERE category_id = ?",
+  );
+  const countTodosByCategory = db.query(
+    "SELECT COUNT(*) AS count FROM todos WHERE category_id = ?",
+  );
+  const deleteCategoryRow = db.query("DELETE FROM categories WHERE id = ?");
+  const deleteCategoryTransaction = db.transaction(
+    (id: CategoryId, options: DeleteCategoryOptions): DeleteCategoryResult => {
+      const { count: referencedTodoCount } = countTodosByCategory.get(id) as { count: number };
+      if (referencedTodoCount > 0 && !options.force) {
+        return { deleted: false, referencedTodoCount };
+      }
+      if (options.force) {
+        unassignTodosByCategory.run(options.updatedAt, id);
+      }
+      const deleteResult = deleteCategoryRow.run(id);
+      return { deleted: deleteResult.changes > 0, referencedTodoCount };
+    },
+  );
 
   return {
     async listTodos(filter?: TodoFilter): Promise<Todo[]> {
@@ -207,8 +229,11 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
       categoryUpsert.run(...categoryParams(category));
     },
 
-    async deleteCategory(id: CategoryId): Promise<void> {
-      db.query("DELETE FROM categories WHERE id = ?").run(id);
+    async deleteCategory(
+      id: CategoryId,
+      options: DeleteCategoryOptions,
+    ): Promise<DeleteCategoryResult> {
+      return deleteCategoryTransaction.immediate(id, options);
     },
 
     async exportSnapshot(): Promise<StoreSnapshot> {

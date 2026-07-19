@@ -53,15 +53,15 @@ date and may also have a scheduled minute-of-day, duration, category, and emoji.
   every row in memory.
 - The schema is versioned through SQLite's `PRAGMA user_version`; opening a database with an
   unsupported or newer version fails with an actionable error.
-- Writes that touch many rows (for example, import) run inside an ACID transaction, so an
-  interrupted write never leaves a half-applied state behind.
+- Writes that touch many rows (for example, import and forced category deletion) run inside an ACID
+  transaction, so an interrupted write never leaves a half-applied state behind.
 - A missing database bootstraps cleanly: the file and schema are created on first open.
 - Corrupt or unreadable files fail with an actionable error that points the user at the file to
   inspect or remove.
 - The repository exposes a query-shaped contract (`listTodos(filter)`, `getTodo` / `putTodo`,
-  `listCategories` / `getCategory` / `putCategory`, `exportSnapshot` / `importSnapshot`) shared by
-  REPL and command mode; it is defined in `src/storage/repository.ts` and implemented in
-  `src/storage/sqlite-store.ts`.
+  `listCategories` / `getCategory` / `putCategory`, atomic category deletion, and `exportSnapshot` /
+  `importSnapshot`) shared by REPL and command mode; it is defined in `src/storage/repository.ts` and
+  implemented in `src/storage/sqlite-store.ts`.
 
 ## Categories
 
