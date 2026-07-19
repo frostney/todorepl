@@ -29,8 +29,10 @@ yet.
 
 ## Next steps
 
-1. PR opened via /create-pr for the vision/ADR/AGENTS.md changes.
-2. Create issues: rename to todomcp; MCP server transport over src/app services; effort field +
-   breakdown rule (>120 min threshold); OKF bundle read/write; iCal feed config + free-time
-   computation; morning session skill + installer (MCP registration + scheduler per selected
-   harness); velocity/nudging behavior; user-level skills packaging.
+1. PR #13 opened for the vision/ADR/AGENTS.md changes.
+2. Issues created for the build-out: #14 rename + data migration (lands first), #15 MCP server
+   transport, #16 effort field + 120-minute breakdown flag, #17 OKF bundle, #18 iCal feeds +
+   free-time computation, #19 installer (MCP registration + scheduler per selected harness),
+   #20 workflow skills (intake, grilling, prioritisation, morning re-alignment, velocity
+   nudging). Follow-up grill settled: full rename including GitHub repo and data-dir migration.
+3. Implement in dependency order: #14 first; #15 unlocks #17/#18/#20; #19 installs #20.
