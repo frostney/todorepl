@@ -3,8 +3,8 @@
 ## Executive Summary
 
 - Install dependencies with `bun install`.
-- Run the CLI with `bun run todorepl -- --help`.
-- Start REPL mode with `bun run todorepl`.
+- Run the CLI with `bun run todomcp -- --help`.
+- Start REPL mode with `bun run todomcp`.
 - Run the full local gate with `bun run check`.
 
 ## Install
@@ -18,13 +18,13 @@ bun install
 Print command help:
 
 ```sh
-bun run todorepl -- --help
+bun run todomcp -- --help
 ```
 
 Start the interactive shell:
 
 ```sh
-bun run todorepl
+bun run todomcp
 ```
 
 The shell prints a `todo>` prompt and accepts the same commands as command mode, one per line:
@@ -43,30 +43,30 @@ the shell. A bad command (unknown or invalid input) prints an error but keeps th
 Run one command:
 
 ```sh
-bun run todorepl -- list
+bun run todomcp -- list
 ```
 
 Resolve a specific local data file path:
 
 ```sh
-bun run todorepl -- add "Draft launch notes" --data ./local.todos.db
+bun run todomcp -- add "Draft launch notes" --data ./local.todos.db
 ```
 
 The package binary exposes the same command surface after local linking or package install:
 
 ```sh
-todorepl --help
+todomcp --help
 ```
 
 ## Data Location
 
-By default, todorepl resolves its local data file to:
+By default, todomcp resolves its local data file to:
 
-- macOS: `~/Library/Application Support/todorepl/todos.db`
-- Linux and other XDG platforms: `$XDG_DATA_HOME/todorepl/todos.db`, or
-  `~/.local/share/todorepl/todos.db` when `XDG_DATA_HOME` is unset
-- Windows: `%LOCALAPPDATA%\todorepl\todos.db`, or
-  `~/AppData/Local/todorepl/todos.db` when `LOCALAPPDATA` is unset
+- macOS: `~/Library/Application Support/todomcp/todos.db`
+- Linux and other XDG platforms: `$XDG_DATA_HOME/todomcp/todos.db`, or
+  `~/.local/share/todomcp/todos.db` when `XDG_DATA_HOME` is unset
+- Windows: `%LOCALAPPDATA%\todomcp\todos.db`, or
+  `~/AppData/Local/todomcp/todos.db` when `LOCALAPPDATA` is unset
 
 Use `--data path` to override the local file path for commands that accept data. Todos and categories
 are stored in a local SQLite database with a versioned schema and transactional writes, and
@@ -81,27 +81,27 @@ argument may be given as a unique id prefix, and any `<idOrName>` argument resol
 exact id or exact (unique) name.
 
 ```text
-todorepl add <name> [--date YYYY-MM-DD] [--time minutes] [--duration min]
+todomcp add <name> [--date YYYY-MM-DD] [--time minutes] [--duration min]
                     [--category name] [--emoji char] [--data path] [--json]
-todorepl list [--date YYYY-MM-DD] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+todomcp list [--date YYYY-MM-DD] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
               [--category name] [--status open|done] [--scheduled] [--unscheduled]
               [--include-deleted] [--data path] [--json]
-todorepl show <id> [--data path] [--json]
-todorepl done <id> [--data path] [--json]
-todorepl edit <id> [--name text] [--time minutes] [--duration min]
+todomcp show <id> [--data path] [--json]
+todomcp done <id> [--data path] [--json]
+todomcp edit <id> [--name text] [--time minutes] [--duration min]
                    [--category name] [--emoji char] [--data path] [--json]
-todorepl move <id> <date> [--data path] [--json]
-todorepl delete <id> [--data path] [--json]
-todorepl category create <name> [--color hex] [--emoji char] [--data path] [--json]
-todorepl category list [--data path] [--json]
-todorepl category show <idOrName> [--data path] [--json]
-todorepl category edit <idOrName> [--name text] [--color hex] [--emoji char]
+todomcp move <id> <date> [--data path] [--json]
+todomcp delete <id> [--data path] [--json]
+todomcp category create <name> [--color hex] [--emoji char] [--data path] [--json]
+todomcp category list [--data path] [--json]
+todomcp category show <idOrName> [--data path] [--json]
+todomcp category edit <idOrName> [--name text] [--color hex] [--emoji char]
                        [--data path] [--json]
-todorepl category delete <idOrName> [--force] [--data path] [--json]
-todorepl export [--data path] [--json]
-todorepl import [--file path] [--data path] [--json]
-todorepl --help
-todorepl --version
+todomcp category delete <idOrName> [--force] [--data path] [--json]
+todomcp export [--data path] [--json]
+todomcp import [--file path] [--data path] [--json]
+todomcp --help
+todomcp --version
 ```
 
 `add` creates a todo on a date (defaulting to today). `list` filters by date, range, category, status,
@@ -118,7 +118,7 @@ stdin, validating the whole payload before it replaces the current data. Print m
 by adding `--json`:
 
 ```sh
-bun run todorepl -- list --json
+bun run todomcp -- list --json
 ```
 
 ## Validate
