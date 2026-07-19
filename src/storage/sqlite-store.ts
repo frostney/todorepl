@@ -2,7 +2,8 @@ import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Category, CategoryId, Todo, TodoId } from "../domain/model";
-import { resolveTodoDataPath } from "./data-path";
+import { resolveLegacyTodoDataPath, resolveTodoDataPath } from "./data-path";
+import { migrateLegacyDataFile } from "./legacy-migration";
 import {
   type DeleteCategoryOptions,
   type DeleteCategoryResult,
@@ -160,6 +161,7 @@ export function createSqliteRepository(options?: RepositoryOptions): TodoReposit
   const path = options?.path === ":memory:" ? ":memory:" : resolveTodoDataPath(options?.path);
 
   if (path !== ":memory:") {
+    if (options?.path === undefined) migrateLegacyDataFile(resolveLegacyTodoDataPath(), path);
     mkdirSync(dirname(path), { recursive: true });
   }
   const db = new Database(path, { create: true });
