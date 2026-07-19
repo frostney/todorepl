@@ -274,6 +274,93 @@ describe("soft delete visibility", () => {
   });
 });
 
+describe("atomic category deletion", () => {
+  test("reports that a missing category was not deleted", async () => {
+    const repo = makeRepo();
+
+    const result = await repo.deleteCategory("missing", {
+      force: false,
+      updatedAt: "2026-06-24T12:00:00.000Z",
+    });
+
+    expect(result).toEqual({ deleted: false, referencedTodoCount: 0 });
+  });
+
+  test("un-assigns every referencing todo and deletes the category", async () => {
+    const repo = makeRepo();
+    const work = category({ id: "work", name: "Work" });
+    const home = category({ id: "home", name: "Home" });
+    await repo.putCategory(work);
+    await repo.putCategory(home);
+    await seed(repo, [
+      todo({ id: "work-open", categoryId: work.id }),
+      todo({ id: "work-deleted", categoryId: work.id, deletedAt: "2026-06-24T11:00:00.000Z" }),
+      todo({ id: "home-open", categoryId: home.id }),
+    ]);
+
+    await repo.deleteCategory(work.id, {
+      force: true,
+      updatedAt: "2026-06-24T12:00:00.000Z",
+    });
+
+    expect(await repo.getCategory(work.id)).toBeUndefined();
+    expect(await repo.getCategory(home.id)).toEqual(home);
+    expect(await repo.getTodo("work-open")).toMatchObject({
+      updatedAt: "2026-06-24T12:00:00.000Z",
+    });
+    expect((await repo.getTodo("work-open"))?.categoryId).toBeUndefined();
+    expect((await repo.getTodo("work-deleted"))?.categoryId).toBeUndefined();
+    expect(await repo.getTodo("home-open")).toMatchObject({
+      categoryId: home.id,
+      updatedAt: TODO_BASE.updatedAt,
+    });
+  });
+
+  test("refuses a referenced category without force and changes nothing", async () => {
+    const repo = makeRepo();
+    const work = category({ id: "work", name: "Work" });
+    const assigned = todo({ id: "assigned", categoryId: work.id });
+    await repo.putCategory(work);
+    await repo.putTodo(assigned);
+
+    const result = await repo.deleteCategory(work.id, {
+      force: false,
+      updatedAt: "2026-06-24T12:00:00.000Z",
+    });
+
+    expect(result).toEqual({ deleted: false, referencedTodoCount: 1 });
+    expect(await repo.getCategory(work.id)).toEqual(work);
+    expect(await repo.getTodo(assigned.id)).toEqual(assigned);
+  });
+
+  test("rolls back todo updates when deleting the category fails", async () => {
+    const path = await tempPath("atomic-delete.sqlite");
+    const repo = track(createSqliteRepository({ path }));
+    const work = category({ id: "work", name: "Work" });
+    const assigned = todo({ id: "assigned", categoryId: work.id });
+    await repo.putCategory(work);
+    await repo.putTodo(assigned);
+
+    const raw = new Database(path);
+    raw.run(`CREATE TRIGGER fail_category_delete
+      BEFORE DELETE ON categories
+      BEGIN
+        SELECT RAISE(ABORT, 'simulated category delete failure');
+      END`);
+    raw.close();
+
+    await expect(
+      repo.deleteCategory(work.id, {
+        force: true,
+        updatedAt: "2026-06-24T12:00:00.000Z",
+      }),
+    ).rejects.toThrow("simulated category delete failure");
+
+    expect(await repo.getCategory(work.id)).toEqual(work);
+    expect(await repo.getTodo(assigned.id)).toEqual(assigned);
+  });
+});
+
 describe("deterministic ordering", () => {
   test("listTodos orders by date ASC, order ASC, id ASC", async () => {
     const repo = makeRepo();

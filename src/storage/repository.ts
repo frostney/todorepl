@@ -22,6 +22,16 @@ export type RepositoryOptions = {
   path?: string;
 };
 
+export type DeleteCategoryOptions = {
+  force: boolean;
+  updatedAt: string;
+};
+
+export type DeleteCategoryResult = {
+  deleted: boolean;
+  referencedTodoCount: number;
+};
+
 export interface TodoRepository {
   listTodos(filter?: TodoFilter): Promise<Todo[]>;
   getTodo(id: TodoId): Promise<Todo | undefined>;
@@ -29,7 +39,7 @@ export interface TodoRepository {
   listCategories(): Promise<Category[]>;
   getCategory(id: CategoryId): Promise<Category | undefined>;
   putCategory(category: Category): Promise<void>;
-  deleteCategory(id: CategoryId): Promise<void>;
+  deleteCategory(id: CategoryId, options: DeleteCategoryOptions): Promise<DeleteCategoryResult>;
   exportSnapshot(): Promise<StoreSnapshot>;
   importSnapshot(snapshot: StoreSnapshot): Promise<void>;
   close(): void;
