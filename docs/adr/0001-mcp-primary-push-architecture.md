@@ -18,9 +18,9 @@ configuration (`CalendarCard` + `calendarFeeds`).
 ## Decision
 
 The primary interface becomes a globally registered MCP server over the same `src/app/` services and
-SQLite store the CLI uses today. Push arrives through two channels: the MCP server available in
-every harness session across all projects, and a locally scheduled morning session that initiates
-re-alignment grilling. The Stricli CLI and REPL are kept as a secondary transport for human
+SQLite store the CLI uses today; it provides shared, always-available todo state access in every
+harness session across all projects. Push — work initiated without a user request — is delivered by
+one channel: a locally scheduled morning session that initiates re-alignment grilling. The Stricli CLI and REPL are kept as a secondary transport for human
 inspection, scripting, and export/import, with no new feature investment by default. Session-start
 context injection and OS-level notification daemons were considered as push channels and rejected to
 keep app surface minimal. The project will be renamed `todomcp` to match this identity, decided
