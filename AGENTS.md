@@ -5,7 +5,8 @@
 - Always validate. If source code is available, validate with source code.
 - Bun is the only package manager and runtime for this repository; do not add npm, pnpm, or yarn lockfiles.
 - The CLI is built with TypeScript and Stricli. Do not replace Stricli without a documented product reason.
-- This is a command-line todo app. Do not add a web, desktop, or mobile UI.
+- This is a local-first todo substrate for agent harnesses (MCP server primary, CLI secondary). Do not add a web, desktop, or mobile UI.
+- SQLite is the state of record for todo status, dates, and ordering; the OKF bundle records context and rationale, never state.
 
 ## Runtime / Commands
 
